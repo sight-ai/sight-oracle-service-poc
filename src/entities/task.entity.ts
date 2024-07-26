@@ -35,4 +35,10 @@ export class TaskEntity {
 
     @ManyToOne(() => RequestEntity, (request) => request.tasks)
     request: RequestEntity;
+
+    @Column('text', { nullable: true }) // JSON Wrapped
+    responseResults: string;
+
+    @Column('text', {nullable: true})
+    callbackRecipient: string;
 }

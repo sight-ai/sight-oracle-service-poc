@@ -1,38 +1,38 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createPublicClient, http } from 'viem';
+import {createPublicClient, http, PublicClient} from 'viem';
 import { oracleChain } from './oracle.chain'; // Import your custom chain definition
 import { TaskService } from '../task/task.service';
 import { oracleAbi } from "./oracle.abi";
 
+// Setup viem client with custom chain
+const client = createPublicClient({
+    chain: oracleChain,
+    transport: http(process.env.ORACLE_CHAIN_RPC_URL)
+});
+
 @Injectable()
 export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(OracleListenerService.name);
-    private client;
     private intervalId;
     private lastBlockHeight: bigint;
-    private contractAddress: string;
+    private contractAddress: `0x${string}`;
 
     constructor(
         private readonly taskService: TaskService,
         private readonly configService: ConfigService,
     ) {
         this.logger.log('Initializing service...');
-        this.contractAddress = this.configService.get<string>('ORACLE_CONTRACT_ADDRESS');
-
-        // Setup viem client with custom chain
-        this.client = createPublicClient({
-            chain: oracleChain,
-            transport: http(this.configService.get<string>('ORACLE_CHAIN_RPC_URL')),
-        });
+        this.contractAddress = this.configService.get<string>('ORACLE_CONTRACT_ADDRESS') as `0x${string}`;
     }
 
     async onModuleInit() {
         this.logger.log('onModuleInit called...');
         // Get the current block height
+
+        this.lastBlockHeight = await client.getBlockNumber();
+        this.logger.log('fetching lastBlockHeight as ' + this.lastBlockHeight)
         try {
-            this.lastBlockHeight = await this.client.getBlockNumber();
-            this.logger.log(`Starting block height: ${this.lastBlockHeight}`);
             this.startFetchingLogs();
         } catch (error) {
             this.logger.error('Failed to get initial block number:', error);
@@ -46,11 +46,18 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
 
     startFetchingLogs() {
         this.logger.log('startFetchingLogs called...');
+
         this.intervalId = setInterval(async () => {
             try {
-                const currentBlockHeight = await this.client.getBlockNumber();
-                const logs = await this.client.getLogs({
+                const currentBlockHeight = await client.getBlockNumber();
+                if(currentBlockHeight == this.lastBlockHeight) {
+                    return;
+                }
+                this.logger.log(`scanning block from ${this.lastBlockHeight} to ${currentBlockHeight}`);
+
+                const logs = await client.getContractEvents({
                     address: this.contractAddress,
+                    // @ts-ignore
                     abi: oracleAbi,
                     eventName: 'RequestSent',
                     // TODO: persistant this block height to recover from crash
@@ -59,10 +66,10 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
                 });
 
                 if (logs.length === 0) {
-                    this.logger.log('No new events found');
+                    this.logger.verbose('No new events found');
                 } else {
                     for (const log of logs) {
-                        this.logger.log('Event received:', JSON.stringify(log));
+                        this.logger.log('RequestSent Event received:', log.transactionHash);
                         await this.taskService.createTask(log, oracleChain.id); // Create a new task
                     }
                 }
@@ -71,7 +78,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
             } catch (error) {
                 this.logger.error('Error fetching logs:', error);
             }
-        }, 1000); // Fetch logs every second
+        }, 5000); // Fetch logs every second
     }
 
     stopFetchingLogs() {

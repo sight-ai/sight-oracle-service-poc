@@ -8,59 +8,81 @@ import {
     WalletClient,
     createWalletClient,
     Chain,
-    HDAccount
+    HDAccount, decodeEventLog, getContract, keccak256, encodeEventTopics
 } from 'viem';
 import {computeProxyChain} from "./compute-proxy.chain";
 import {mnemonicToAccount} from "viem/accounts";
 import {computeProxyAbi} from "./compute-proxy.abi";
+import * as process from "process";
+
+// @ts-ignore
+const client: PublicClient = createPublicClient({
+    chain: computeProxyChain,
+    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL),
+});
+
+const account = mnemonicToAccount(process.env.COMPUTE_PROXY_CHAIN_MNEMONIC);
+
+let walletClient = createWalletClient({
+    account: account.address,
+    chain: computeProxyChain,
+    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL)});
+
+let publicClient = createPublicClient({
+    chain: computeProxyChain,
+    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL)});
 
 @Injectable()
 export class ComputeProxyService {
     private readonly logger = new Logger(ComputeProxyService.name);
-    private client;
-    private walletClient;
     private contractAddress: `0x${string}`;
-    private account: HDAccount;
-    private abi = [
-        // Add the relevant ABI items for the ComputeProxy contract
-        parseAbiItem('function executeRequest((bytes32 id, address requester, (uint8 opcode, uint256[] operands, uint64 value)[] ops, uint256 opsCursor, address callbackAddr, bytes4 callbackFunc, bytes extraData) r) public returns ((uint256 data, uint8 valueType)[])')
-    ];
+    private executeRequestAbi = parseAbiItem('function executeRequest((bytes32 id, address requester, (uint8 opcode, uint256[] operands, uint64 value)[] ops, uint256 opsCursor, address callbackAddr, bytes4 callbackFunc, bytes extraData) r) public returns ((uint256 data, uint8 valueType)[])');
+    private requestResolvedEventAbi = parseAbiItem("event RequestResolved(bytes32 id, (uint256 data, uint8 valueType)[] results)");
 
     constructor(private readonly configService: ConfigService) {
-
-        // this.client = createPublicClient({
-        //     chain: computeProxyChain,
-        //     transport: http(this.configService.get<string>('COMPUTE_PROXY_CHAIN_RPC_URL')),
-        // });
-        //
-        // const mnemonic = this.configService.get<string>('COMPUTE_PROXY_CHAIN_MNEMONIC');
-        // this.account = mnemonicToAccount(mnemonic);
-        //
-        // this.walletClient = createWalletClient({
-        //     chain: computeProxyChain,
-        //     transport: http(this.configService.get<string>('COMPUTE_PROXY_CHAIN_RPC_URL')),
-        // });
-        //
-        // this.contractAddress = this.configService.get<string>('COMPUTE_PROXY_CONTRACT_ADDRESS') as `0x${string}`;
+        this.contractAddress = this.configService.get<string>('COMPUTE_PROXY_CONTRACT_ADDRESS') as `0x${string}`;
     }
 
-    async executeRequest(request: any): Promise<any> {
-        // try {
-        //     const transactionHash = await this.walletClient.writeContract({
-        //         address: this.contractAddress,
-        //         abi: this.abi,
-        //         functionName: 'executeRequest',
-        //         args: [request],
-        //         account: this.account
-        //     });
-        //
-        //     this.logger.log(`Transaction sent: ${transactionHash}`);
-        //     const receipt = await this.client.waitForTransactionReceipt({ hash: transactionHash });
-        //     this.logger.log(`Transaction mined: ${transactionHash}`);
-        //     return receipt;
-        // } catch (error) {
-        //     this.logger.error(`Error executing request: ${error.message}`);
-        //     throw error;
-        // }
+    async executeRequest(input: any): Promise<any> {
+        try {
+
+            const transactionHash = await walletClient.writeContract({
+                address: this.contractAddress,
+                chain: computeProxyChain,
+                abi: [this.executeRequestAbi],
+                functionName: 'executeRequest',
+                args: [input],
+                account
+            });
+
+            this.logger.log(`Transaction sent: ${transactionHash}`);
+            const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
+            this.logger.log(`Transaction mined: ${transactionHash}`);
+
+            // Extract event logs from the transaction receipt
+            const eventLogs = receipt.logs;
+            if (eventLogs.length === 0) {
+                throw new Error('No RequestResolved event found in transaction logs');
+            }
+
+            const requestResolvedEvent = eventLogs[0];
+            const topics = encodeEventTopics({
+                abi: [this.requestResolvedEventAbi],
+                eventName: 'RequestResolved'
+            })
+            this.logger.log('eventTopic: ' + topics);
+
+            const event = decodeEventLog({
+                abi: [this.requestResolvedEventAbi],
+                data: requestResolvedEvent.data,
+                // @ts-ignore
+                topics: topics
+            })
+
+            return event;
+        } catch (error) {
+            this.logger.error(`Error executing request: ${error.message}`);
+            throw error;
+        }
     }
 }

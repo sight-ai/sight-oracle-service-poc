@@ -1,14 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {Entity, PrimaryGeneratedColumn, Column, OneToMany, PrimaryColumn} from 'typeorm';
 import { OperationEntity } from './operation.entity';
 import { TaskEntity } from './task.entity';
 
 @Entity()
 export class RequestEntity {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryColumn()
     id: string;
-
-    @Column()
-    requestId: string;
 
     @Column()
     requester: string;
