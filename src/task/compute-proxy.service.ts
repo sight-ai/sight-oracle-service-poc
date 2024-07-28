@@ -46,6 +46,8 @@ export class ComputeProxyService {
     async executeRequest(input: any): Promise<any> {
         try {
 
+            this.logger.log("Doing computation with following args:");
+            this.logger.log(input);
             const transactionHash = await walletClient.writeContract({
                 address: this.contractAddress,
                 chain: computeProxyChain,

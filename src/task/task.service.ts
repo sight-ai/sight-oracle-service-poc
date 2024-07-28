@@ -89,7 +89,6 @@ export class TaskService {
         await this.doComputation(taskId);
         this.logger.log('Doing callback');
         await this.doCallback(taskId);
-
     }
 
     async doComputation(taskId: string): Promise<void> {
@@ -151,6 +150,10 @@ export class TaskService {
             throw new Error(`Task with ID ${taskId} no response captured`);
         }
         const computationResults = JSON.parse(task.responseResults).args.results;
+
+        this.logger.log('Callbacking following result:');
+        this.logger.log(computationResults);
+
         const transformedComputationResults = computationResults.map(element => {
             return {
                 data: BigInt(element.data),
