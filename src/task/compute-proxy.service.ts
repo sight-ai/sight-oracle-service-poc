@@ -12,7 +12,6 @@ import {
 } from 'viem';
 import {computeProxyChain} from "./compute-proxy.chain";
 import {mnemonicToAccount} from "viem/accounts";
-import {computeProxyAbi} from "./compute-proxy.abi";
 import * as process from "process";
 
 // @ts-ignore
@@ -54,6 +53,7 @@ export class ComputeProxyService {
                 abi: [this.executeRequestAbi],
                 functionName: 'executeRequest',
                 args: [input],
+                gas: 1000000n,
                 account
             });
 
