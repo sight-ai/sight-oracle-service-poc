@@ -33,8 +33,6 @@ export class TaskService {
         }
 
         const validatedRequest: Request = requestResult.data;
-        this.logger.log('Validate request pass');
-        this.logger.log(validatedRequest);
 
         // Check if request already exists
         const existRequest = await this.requestRepository.findOneBy({id: validatedRequest.id});
@@ -126,7 +124,6 @@ export class TaskService {
             task.status = 'response-captured';
             await this.taskRepository.save(task);
             this.logger.log('Task result captured');
-            this.logger.log(response);
         } catch (error) {
             // TODO: retry
             this.logger.error(`Error executing task ${taskId}: ${error.message}`);
@@ -152,7 +149,7 @@ export class TaskService {
         const computationResults = JSON.parse(task.responseResults).args.results;
 
         this.logger.log('Callbacking following result:');
-        this.logger.log(computationResults);
+        this.logger.log(JSON.stringify(computationResults));
 
         const transformedComputationResults = computationResults.map(element => {
             return {
