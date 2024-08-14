@@ -103,7 +103,7 @@ export class TaskService {
         const request = {
             id: task.requestId,
             requester: task.requester,
-            ops: task.request.ops.map(op => ({
+            ops: task.request.ops.sort(function(a,b){return a.index - b.index}).map(op => ({
                 opcode: op.opcode,
                 operands: op.operands,
                 value: op.value,
