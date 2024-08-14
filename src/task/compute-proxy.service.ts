@@ -47,6 +47,8 @@ export class ComputeProxyService {
 
             this.logger.log("Doing computation with following args:");
             this.logger.log(input);
+            this.logger.log(this.contractAddress);
+            this.logger.log(computeProxyChain);
             const transactionHash = await walletClient.writeContract({
                 address: this.contractAddress,
                 chain: computeProxyChain,
@@ -60,6 +62,7 @@ export class ComputeProxyService {
             this.logger.log(`Transaction sent: ${transactionHash}`);
             const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
             this.logger.log(`Transaction mined: ${transactionHash}`);
+            this.logger.log(receipt);
 
             // Extract event logs from the transaction receipt
             const eventLogs = receipt.logs;
