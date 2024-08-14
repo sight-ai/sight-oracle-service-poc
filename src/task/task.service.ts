@@ -59,6 +59,8 @@ export class TaskService {
         request.callbackFunc = validatedRequest.callbackFunc;
         request.extraData = validatedRequest.extraData;
 
+        this.logger.log(request);
+
         await this.requestRepository.save(request);
 
         const task = new TaskEntity();
@@ -73,6 +75,7 @@ export class TaskService {
         task.request = request;
 
         this.logger.log('Creating task for requestID:', task.requestId);
+        this.logger.log(task);
         const savedTask = await this.taskRepository.save(task);
 
         // TODO: Decouple this logic by scan task
