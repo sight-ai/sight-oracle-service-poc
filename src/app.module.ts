@@ -19,6 +19,7 @@ import { TaskModule } from './task/task.module';
       database: process.env.MYSQL_DATABASE,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: process.env.ENV !== "production",
+      logging: false
     }),
     GatewayModule,
     TaskModule],

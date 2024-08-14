@@ -57,9 +57,9 @@ export class OracleCallbackService {
             });
 
             this.logger.log(`Callback transaction sent: ${txHash}`);
-            const receipt = await this.client.waitForTransactionReceipt({ hash: txHash });
+            await this.client.waitForTransactionReceipt({ hash: txHash });
             this.logger.log(`Callback transaction mined: ${txHash}`);
-            return receipt;
+            return txHash;
         } catch (error) {
             this.logger.error(`Error in callback task: ${error.message}`);
             throw error;

@@ -121,6 +121,7 @@ export class TaskService {
             const response = await this.computeProxyService.executeRequest(request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully`);
+            this.logger.log(response);
             task.status = 'executed';
             await this.taskRepository.save(task);
             task.responseResults = JSON.stringify(response, stringifyBigInt);
@@ -161,7 +162,7 @@ export class TaskService {
             }
         });
 
-        const callbackRequest = OracleCallbackRequestSchema.parse({
+        const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
             chainId: task.chainId,
             requestId: task.requestId,
             callbackAddr: task.callbackAddr,
@@ -169,13 +170,18 @@ export class TaskService {
             responseResults: transformedComputationResults,
         });
 
+        if(!callbackRequestParse.success) {
+            this.logger.error('Invalid callbackRequest data:', callbackRequestParse.error.errors);
+            throw new Error(callbackRequestParse.error.toString());
+        }
+
         // TODO: decouple and use HTTP REST API
-        const callbackRecipient = await this.oracleCallbackService.doCallback(callbackRequest);
-        if(callbackRecipient) {
-            task.callbackRecipient = callbackRecipient;
+        try{
+            const callbackTxHash = await this.oracleCallbackService.doCallback(callbackRequestParse.data);
+            task.callbackRecipient = callbackTxHash;
             task.status = 'callback-complete';
             await this.taskRepository.save(task);
-        } else {
+        } catch (e) {
             this.logger.error(`task ${taskId} failed to do callback`);
             task.status = 'callback-failed';
             await this.taskRepository.save(task);
