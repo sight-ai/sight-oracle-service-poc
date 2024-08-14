@@ -44,7 +44,6 @@ export class ComputeProxyService {
 
     async executeRequest(input: any): Promise<any> {
         try {
-
             this.logger.log("Doing computation with following args:");
             this.logger.log(input);
             this.logger.log(this.contractAddress);

@@ -53,7 +53,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
                 if(currentBlockHeight == this.lastBlockHeight) {
                     return;
                 }
-                this.logger.log(`scanning block from ${this.lastBlockHeight} to ${currentBlockHeight}`);
+                this.logger.debug(`scanning block from ${this.lastBlockHeight} to ${currentBlockHeight}`);
 
                 const logs = await client.getContractEvents({
                     address: this.contractAddress,
@@ -66,7 +66,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
                 });
 
                 if (logs.length === 0) {
-                    this.logger.verbose('No new events found');
+                    this.logger.debug('No new events found');
                 } else {
                     for (const log of logs) {
                         this.logger.log('RequestSent Event received:', log.transactionHash);
