@@ -34,35 +34,56 @@ export class OracleCallbackService {
     }
 
     async doCallback(callbackRequest: OracleCallbackRequest): Promise<string> {
-        try {
-            // Validate the callback request using Zod
-            OracleCallbackRequestSchema.parse(callbackRequest);
+        const maxRetries = 3;
+        const retryDelay = 5000; // 5 seconds
+        let attempt = 0;
+        let lastError: Error | null = null;
 
-            // Check if chain IDs match
-            if (callbackRequest.chainId !== this.oracleChainId) {
-                throw new Error(`Chain ID mismatch: expected ${this.oracleChainId}, got ${callbackRequest.chainId}`);
+        while (attempt < maxRetries) {
+            try {
+                attempt++;
+                // Validate the callback request using Zod
+                OracleCallbackRequestSchema.parse(callbackRequest);
+
+                // Check if chain IDs match
+                if (callbackRequest.chainId !== this.oracleChainId) {
+                    throw new Error(`Chain ID mismatch: expected ${this.oracleChainId}, got ${callbackRequest.chainId}`);
+                }
+
+                const abi = [
+                    parseAbiItem('function callback(bytes32 requestId, (uint256 data, uint8 valueType)[] result) public'),
+                ];
+
+                const txHash = await this.walletClient.writeContract({
+                    address: this.contractAddress,
+                    chain: oracleChain,
+                    abi: abi,
+                    functionName: 'callback',
+                    args: [callbackRequest.requestId, callbackRequest.responseResults],
+                    account,
+                });
+
+                this.logger.log(`Callback transaction sent: ${txHash}`);
+                await this.client.waitForTransactionReceipt({ hash: txHash });
+                this.logger.log(`Callback transaction mined: ${txHash}`);
+                return txHash;
+            } catch (error) {
+                this.logger.error(`Error in callback task, attempt ${attempt} of ${maxRetries}: ${error.message}`);
+                lastError = error;
+
+                if (attempt < maxRetries) {
+                    this.logger.log(`Waiting for ${retryDelay / 1000} seconds before retrying...`);
+                    // In-line sleep function
+                    await new Promise(resolve => setTimeout(resolve, retryDelay)); // Wait for 5 seconds before retrying
+                } else {
+                    this.logger.error(`Max retry attempts reached. Failing with error: ${lastError.message}`);
+                    throw lastError;
+                }
             }
-
-            const abi = [
-                parseAbiItem('function callback(bytes32 requestId, (uint256 data, uint8 valueType)[] result) public'),
-            ];
-
-            const txHash = await this.walletClient.writeContract({
-                address: this.contractAddress,
-                chain: oracleChain,
-                abi: abi,
-                functionName: 'callback',
-                args: [callbackRequest.requestId, callbackRequest.responseResults],
-                account,
-            });
-
-            this.logger.log(`Callback transaction sent: ${txHash}`);
-            await this.client.waitForTransactionReceipt({ hash: txHash });
-            this.logger.log(`Callback transaction mined: ${txHash}`);
-            return txHash;
-        } catch (error) {
-            this.logger.error(`Error in callback task: ${error.message}`);
-            throw error;
         }
+
+        throw lastError || new Error("Unexpected error in doCallback");
     }
+
+
 }

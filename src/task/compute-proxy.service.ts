@@ -43,50 +43,70 @@ export class ComputeProxyService {
     }
 
     async executeRequest(input: any): Promise<any> {
-        try {
-            this.logger.log("Doing computation with following args:");
-            this.logger.log(input);
-            this.logger.log(this.contractAddress);
-            this.logger.log(computeProxyChain);
-            const transactionHash = await walletClient.writeContract({
-                address: this.contractAddress,
-                chain: computeProxyChain,
-                abi: [this.executeRequestAbi],
-                functionName: 'executeRequest',
-                args: [input],
-                gas: 1000000n,
-                account
-            });
+        const maxRetries = 5;
+        const retryDelay = 5000; // 5 seconds
+        let attempt = 0;
+        let lastError: Error | null = null;
 
-            this.logger.log(`Transaction sent: ${transactionHash}`);
-            const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
-            this.logger.log(`Transaction mined: ${transactionHash}`);
-            this.logger.log(receipt);
+        while (attempt < maxRetries) {
+            try {
+                attempt++;
+                this.logger.log("Doing computation with following args:");
+                this.logger.debug(input);
+                this.logger.debug(this.contractAddress);
+                this.logger.debug(computeProxyChain);
 
-            // Extract event logs from the transaction receipt
-            const eventLogs = receipt.logs;
-            if (eventLogs.length === 0) {
-                throw new Error('No RequestResolved event found in transaction logs');
+                const transactionHash = await walletClient.writeContract({
+                    address: this.contractAddress,
+                    chain: computeProxyChain,
+                    abi: [this.executeRequestAbi],
+                    functionName: 'executeRequest',
+                    args: [input],
+                    gas: 1000000n,
+                    account
+                });
+
+                this.logger.log(`Transaction sent: ${transactionHash}`);
+                const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
+                this.logger.log(`Transaction mined: ${transactionHash}`);
+                this.logger.log(receipt);
+
+                // Extract event logs from the transaction receipt
+                const eventLogs = receipt.logs;
+                if (eventLogs.length === 0) {
+                    throw new Error('No RequestResolved event found in transaction logs');
+                }
+
+                const requestResolvedEvent = eventLogs[0];
+                const topics = encodeEventTopics({
+                    abi: [this.requestResolvedEventAbi],
+                    eventName: 'RequestResolved'
+                });
+                this.logger.log('eventTopic: ' + topics);
+
+                const event = decodeEventLog({
+                    abi: [this.requestResolvedEventAbi],
+                    data: requestResolvedEvent.data,
+                    // @ts-ignore
+                    topics: topics
+                });
+
+                return event;
+            } catch (error) {
+                this.logger.error(`Error executing request, attempt ${attempt} of ${maxRetries}: ${error.message}`);
+                lastError = error;
+
+                if (attempt < maxRetries) {
+                    this.logger.log(`Waiting for ${retryDelay / 1000} seconds before retrying...`);
+                    // In-line sleep function
+                    await new Promise(resolve => setTimeout(resolve, retryDelay)); // Wait for 5 seconds before retrying
+                } else {
+                    this.logger.error(`Max retry attempts reached. Failing with error: ${lastError.message}`);
+                    throw lastError;
+                }
             }
-
-            const requestResolvedEvent = eventLogs[0];
-            const topics = encodeEventTopics({
-                abi: [this.requestResolvedEventAbi],
-                eventName: 'RequestResolved'
-            })
-            this.logger.log('eventTopic: ' + topics);
-
-            const event = decodeEventLog({
-                abi: [this.requestResolvedEventAbi],
-                data: requestResolvedEvent.data,
-                // @ts-ignore
-                topics: topics
-            })
-
-            return event;
-        } catch (error) {
-            this.logger.error(`Error executing request: ${error.message}`);
-            throw error;
         }
+
+        throw lastError || new Error("Unexpected error in executeRequest");
     }
 }
