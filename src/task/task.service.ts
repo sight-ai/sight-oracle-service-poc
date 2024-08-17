@@ -11,6 +11,15 @@ import {OracleCallbackRequestSchema} from "../schemas/oracle-callback.schema";
 import {OracleCallbackService} from "../gateway/oracle-callback.service";
 import {stringifyBigInt} from "../utils/utils";
 
+
+const TaskStatus = {
+    CREATED: 'created',
+    COMPUTE_EXECUTED: 'compute-executed', // successfully execute the computation
+    COMPUTE_RESPONSE_CAPTURED: 'compute-response-captured', // successfully execute the computation
+    CALLBACK_STARTED: 'callback-started',
+    CALLBACK_COMPLETE: 'callback-complete'
+}
+
 @Injectable()
 export class TaskService {
     private readonly logger = new Logger(TaskService.name);
@@ -73,9 +82,10 @@ export class TaskService {
         task.callbackFunc = request.callbackFunc;
         task.extraData = request.extraData;
         task.request = request;
+        task.status = TaskStatus.CREATED;
 
         this.logger.log('Creating task for requestID:', task.requestId);
-        this.logger.log(task);
+        this.logger.log(JSON.stringify(task));
         const savedTask = await this.taskRepository.save(task);
 
         // TODO: Decouple this logic by scan task
@@ -86,9 +96,9 @@ export class TaskService {
 
     async executeTask(taskId: string): Promise<void> {
         this.logger.log('Executing task ' + taskId);
-        this.logger.log('Doing computation');
+        this.logger.log('Doing computation ' + taskId);
         await this.doComputation(taskId);
-        this.logger.log('Doing callback');
+        this.logger.log('Doing callback ' + taskId);
         await this.doCallback(taskId);
     }
 
@@ -122,16 +132,16 @@ export class TaskService {
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully`);
             this.logger.log(response);
-            task.status = 'executed';
+            task.status = TaskStatus.COMPUTE_EXECUTED;
             await this.taskRepository.save(task);
             task.responseResults = JSON.stringify(response, stringifyBigInt);
-            task.status = 'response-captured';
+            task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
             await this.taskRepository.save(task);
-            this.logger.log('Task result captured');
+            this.logger.log('Task computation response captured');
         } catch (error) {
             // TODO: retry
             this.logger.error(`Error executing task ${taskId}: ${error.message}`);
-            task.status = 'failed';
+            task.failed = true;
             await this.taskRepository.save(task);
         }
     }
@@ -146,10 +156,20 @@ export class TaskService {
             this.logger.error(`Task with ID ${taskId} not found`);
             throw new Error(`Task with ID ${taskId} not found`);
         }
-        if(task.status !== 'response-captured') {
+
+        if(task.failed) {
+            this.logger.error(`Task failed in previous step, skip`);
+            return;
+        }
+
+        if(task.status !== TaskStatus.COMPUTE_RESPONSE_CAPTURED) {
             this.logger.error('No response captured');
             throw new Error(`Task with ID ${taskId} no response captured`);
         }
+
+        task.status = TaskStatus.CALLBACK_STARTED;
+        await this.taskRepository.save(task);
+
         const computationResults = JSON.parse(task.responseResults).args.results;
 
         this.logger.log('Callbacking following result:');
@@ -179,11 +199,11 @@ export class TaskService {
         try{
             const callbackTxHash = await this.oracleCallbackService.doCallback(callbackRequestParse.data);
             task.callbackRecipient = callbackTxHash;
-            task.status = 'callback-complete';
+            task.status = TaskStatus.CALLBACK_STARTED;
             await this.taskRepository.save(task);
         } catch (e) {
             this.logger.error(`task ${taskId} failed to do callback`);
-            task.status = 'callback-failed';
+            task.failed = true;
             await this.taskRepository.save(task);
         }
     }

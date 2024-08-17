@@ -8,11 +8,12 @@ import {
     WalletClient,
     createWalletClient,
     Chain,
-    HDAccount, decodeEventLog, getContract, keccak256, encodeEventTopics
-} from 'viem';
+    HDAccount, decodeEventLog, getContract, keccak256, encodeEventTopics, createNonceManager, TransactionReceipt,
+} from "viem";
 import {computeProxyChain} from "./compute-proxy.chain";
 import {mnemonicToAccount} from "viem/accounts";
 import * as process from "process";
+import { jsonRpc } from "viem/nonce";
 
 // @ts-ignore
 const client: PublicClient = createPublicClient({
@@ -20,6 +21,12 @@ const client: PublicClient = createPublicClient({
     transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL),
 });
 
+const nonceManager = createNonceManager({
+    source: jsonRpc()
+})
+
+// @ts-ignore
+// const account = mnemonicToAccount(process.env.COMPUTE_PROXY_CHAIN_MNEMONIC, {nonceManager});
 const account = mnemonicToAccount(process.env.COMPUTE_PROXY_CHAIN_MNEMONIC);
 
 let walletClient = createWalletClient({
@@ -56,24 +63,40 @@ export class ComputeProxyService {
                 this.logger.debug(this.contractAddress);
                 this.logger.debug(computeProxyChain);
 
-                const transactionHash = await walletClient.writeContract({
-                    address: this.contractAddress,
-                    chain: computeProxyChain,
-                    abi: [this.executeRequestAbi],
-                    functionName: 'executeRequest',
-                    args: [input],
-                    gas: 1000000n,
-                    account
-                });
+                const transactionCount = await publicClient.getTransactionCount({
+                    address: account.address,
+                    blockTag: 'pending'
+                })
 
-                this.logger.log(`Transaction sent: ${transactionHash}`);
-                const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
-                this.logger.log(`Transaction mined: ${transactionHash}`);
+                let transactionHash: `0x${string}`;
+                try {
+                    transactionHash = await walletClient.writeContract({
+                        address: this.contractAddress,
+                        chain: computeProxyChain,
+                        abi: [this.executeRequestAbi],
+                        functionName: 'executeRequest',
+                        args: [input],
+                        gas: 1000000n,
+                        account,
+                        nonce: transactionCount
+                    });
+                } catch (e) {
+                    this.logger.error(e);
+                }
+
+                this.logger.log(`Compute Transaction sent: ${transactionHash}`);
+                const receipt: TransactionReceipt = await client.waitForTransactionReceipt({ hash: transactionHash });
+                this.logger.log(`Compute Transaction mined: ${transactionHash}`);
                 this.logger.log(receipt);
+
+                if (receipt.status == "reverted") {
+                    this.logger.error(`Compute transaction ${transactionHash} reverted`)
+                }
 
                 // Extract event logs from the transaction receipt
                 const eventLogs = receipt.logs;
                 if (eventLogs.length === 0) {
+                    this.logger.error("eventLogs length is 0");
                     throw new Error('No RequestResolved event found in transaction logs');
                 }
 

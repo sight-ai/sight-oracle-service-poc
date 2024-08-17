@@ -1,11 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createPublicClient, createWalletClient, http, parseAbiItem } from 'viem';
+import { createNonceManager, createPublicClient, createWalletClient, http, parseAbiItem } from "viem";
 import {oracleChain} from "./oracle.chain";
 import {mnemonicToAccount} from "viem/accounts";
 import {OracleCallbackRequest, OracleCallbackRequestSchema} from "../schemas/oracle-callback.schema";
 import {computeProxyChain} from "../task/compute-proxy.chain";
+import { jsonRpc } from "viem/nonce";
 
+
+const nonceManager = createNonceManager({
+    source: jsonRpc()
+})
+
+
+// @ts-ignore
+// const account = mnemonicToAccount(process.env.ORACLE_CHAIN_MNEMONIC, { nonceManager });
 const account = mnemonicToAccount(process.env.ORACLE_CHAIN_MNEMONIC);
 
 @Injectable()
@@ -54,6 +63,11 @@ export class OracleCallbackService {
                     parseAbiItem('function callback(bytes32 requestId, (uint256 data, uint8 valueType)[] result) public'),
                 ];
 
+                const transactionCount = await this.client.getTransactionCount({
+                    address: account.address,
+                    blockTag: 'pending'
+                })
+
                 const txHash = await this.walletClient.writeContract({
                     address: this.contractAddress,
                     chain: oracleChain,
@@ -61,6 +75,7 @@ export class OracleCallbackService {
                     functionName: 'callback',
                     args: [callbackRequest.requestId, callbackRequest.responseResults],
                     account,
+                    nonce: transactionCount,
                 });
 
                 this.logger.log(`Callback transaction sent: ${txHash}`);
