@@ -13,6 +13,7 @@ deployments
 
 # files
 *.env
+*.env.*.bak
 *.log
 .DS_Store
 .pnp.*

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const CapsulatedValueSchema = z.object({
     data: z.bigint(),
-    valueType: z.number().int(),
+    valueType: z.bigint(),
 });
 
 const OracleCallbackRequestSchema = z.object({
