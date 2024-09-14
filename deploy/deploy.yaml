@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sight-oracle-backend-dev
+  name: sight-oracle-backend-sepolia-testnet
   namespace: default
   labels:
-    app: sight-oracle-backend-dev
+    app: sight-oracle-backend-sepolia-testnet
 spec:
   replicas: 1
   revisionHistoryLimit: 10
   progressDeadlineSeconds: 600
   selector:
     matchLabels:
-      app: sight-oracle-backend-dev
+      app: sight-oracle-backend-sepolia-testnet
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -20,11 +20,11 @@ spec:
   template:
     metadata:
       labels:
-        app: sight-oracle-backend-dev
+        app: sight-oracle-backend-sepolia-testnet
     spec:
       containers:
-        - name: sight-oracle-backend-dev
-          image: gcr.io/celtic-descent-398803/sight-oracle-backend:0.0.1-poc
+        - name: sight-oracle-backend-sepolia-testnet
+          image: gcr.io/celtic-descent-398803/sight-oracle-backend:0.0.1-sepolia
           imagePullPolicy: IfNotPresent
           resources:
             limits:

@@ -24,6 +24,9 @@ export class TaskEntity {
     @Column({ default: 'pending' })
     status: string;
 
+    @Column({default: false})
+    failed: boolean
+
     @Column()
     callbackAddr: string;
 

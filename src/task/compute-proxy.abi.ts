@@ -90,7 +90,7 @@ export const computeProxyAbi = [
                     }
                 ],
                 "indexed": false,
-                "internalType": "struct ComputeProxy.CapsulatedValue[]",
+                "internalType": "struct ComputeProxy_Demo27.CapsulatedValue[]",
                 "name": "results",
                 "type": "tuple[]"
             }
@@ -173,7 +173,7 @@ export const computeProxyAbi = [
                                 "type": "uint64"
                             }
                         ],
-                        "internalType": "struct ComputeProxy.Operation[]",
+                        "internalType": "struct ComputeProxy_Demo27.Operation[]",
                         "name": "ops",
                         "type": "tuple[]"
                     },
@@ -198,7 +198,7 @@ export const computeProxyAbi = [
                         "type": "bytes"
                     }
                 ],
-                "internalType": "struct ComputeProxy.Request",
+                "internalType": "struct ComputeProxy_Demo27.Request",
                 "name": "r",
                 "type": "tuple"
             }
@@ -218,7 +218,7 @@ export const computeProxyAbi = [
                         "type": "uint8"
                     }
                 ],
-                "internalType": "struct ComputeProxy.CapsulatedValue[]",
+                "internalType": "struct ComputeProxy_Demo27.CapsulatedValue[]",
                 "name": "results",
                 "type": "tuple[]"
             }
@@ -249,7 +249,7 @@ export const computeProxyAbi = [
                         "type": "uint8"
                     }
                 ],
-                "internalType": "struct ComputeProxy.CapsulatedValue",
+                "internalType": "struct ComputeProxy_Demo27.CapsulatedValue",
                 "name": "",
                 "type": "tuple"
             }
@@ -280,7 +280,7 @@ export const computeProxyAbi = [
                         "type": "uint8"
                     }
                 ],
-                "internalType": "struct ComputeProxy.CapsulatedValue",
+                "internalType": "struct ComputeProxy_Demo27.CapsulatedValue",
                 "name": "",
                 "type": "tuple"
             }
@@ -305,7 +305,7 @@ export const computeProxyAbi = [
                         "type": "uint8"
                     }
                 ],
-                "internalType": "struct ComputeProxy.CapsulatedValue",
+                "internalType": "struct ComputeProxy_Demo27.CapsulatedValue",
                 "name": "",
                 "type": "tuple"
             }
@@ -340,7 +340,7 @@ export const computeProxyAbi = [
                                 "type": "uint8"
                             }
                         ],
-                        "internalType": "struct ComputeProxy.CapsulatedValue",
+                        "internalType": "struct ComputeProxy_Demo27.CapsulatedValue",
                         "name": "target",
                         "type": "tuple"
                     },
@@ -365,7 +365,7 @@ export const computeProxyAbi = [
                         "type": "bytes4"
                     }
                 ],
-                "internalType": "struct ComputeProxy.ReencryptRequest",
+                "internalType": "struct ComputeProxy_Demo27.ReencryptRequest",
                 "name": "reen_req",
                 "type": "tuple"
             }

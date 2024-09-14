@@ -1,92 +1,100 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-    createPublicClient,
-    http,
-    parseAbiItem,
-    PublicClient,
-    WalletClient,
-    createWalletClient,
-    Chain,
-    HDAccount, decodeEventLog, getContract, keccak256, encodeEventTopics
-} from 'viem';
-import {computeProxyChain} from "./compute-proxy.chain";
-import {mnemonicToAccount} from "viem/accounts";
-import * as process from "process";
-
-// @ts-ignore
-const client: PublicClient = createPublicClient({
-    chain: computeProxyChain,
-    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL),
-});
-
-const account = mnemonicToAccount(process.env.COMPUTE_PROXY_CHAIN_MNEMONIC);
-
-let walletClient = createWalletClient({
-    account: account.address,
-    chain: computeProxyChain,
-    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL)});
-
-let publicClient = createPublicClient({
-    chain: computeProxyChain,
-    transport: http(process.env.COMPUTE_PROXY_CHAIN_RPC_URL)});
+import { ethers, HDNodeWallet, JsonRpcProvider, TransactionReceipt, TransactionResponse, Wallet } from "ethers";
+import { computeProxyAbi } from './compute-proxy.abi';
 
 @Injectable()
 export class ComputeProxyService {
     private readonly logger = new Logger(ComputeProxyService.name);
-    private contractAddress: `0x${string}`;
-    private executeRequestAbi = parseAbiItem('function executeRequest((bytes32 id, address requester, (uint8 opcode, uint256[] operands, uint64 value)[] ops, uint256 opsCursor, address callbackAddr, bytes4 callbackFunc, bytes extraData) r) public returns ((uint256 data, uint8 valueType)[])');
-    private requestResolvedEventAbi = parseAbiItem("event RequestResolved(bytes32 id, (uint256 data, uint8 valueType)[] results)");
+    private contractAddress: string;
+    private provider: JsonRpcProvider;
+    private wallet: HDNodeWallet;
+    private contract: ethers.Contract;
 
     constructor(private readonly configService: ConfigService) {
-        this.contractAddress = this.configService.get<string>('COMPUTE_PROXY_CONTRACT_ADDRESS') as `0x${string}`;
+        this.contractAddress = this.configService.get<string>('COMPUTE_PROXY_CONTRACT_ADDRESS') as string;
+        this.logger.log("COMPUTE_PROXY_CONTRACT_ADDRESS: " + this.contractAddress);
+
+        // Initialize the provider, wallet, and contract
+        const rpcUrl = this.configService.get<string>('COMPUTE_PROXY_CHAIN_RPC_URL');
+        const mnemonic = this.configService.get<string>('COMPUTE_PROXY_CHAIN_MNEMONIC');
+
+        this.provider = new JsonRpcProvider(rpcUrl);
+        this.wallet = Wallet.fromPhrase(mnemonic).connect(this.provider);
+        this.contract = new ethers.Contract(this.contractAddress, computeProxyAbi, this.wallet);
     }
 
     async executeRequest(input: any): Promise<any> {
-        try {
-            this.logger.log("Doing computation with following args:");
-            this.logger.log(input);
-            this.logger.log(this.contractAddress);
-            this.logger.log(computeProxyChain);
-            const transactionHash = await walletClient.writeContract({
-                address: this.contractAddress,
-                chain: computeProxyChain,
-                abi: [this.executeRequestAbi],
-                functionName: 'executeRequest',
-                args: [input],
-                gas: 1000000n,
-                account
-            });
+        const maxRetries = 5;
+        const retryDelay = 5000; // 5 seconds
+        let attempt = 0;
+        let lastError: Error | null = null;
 
-            this.logger.log(`Transaction sent: ${transactionHash}`);
-            const receipt = await client.waitForTransactionReceipt({ hash: transactionHash });
-            this.logger.log(`Transaction mined: ${transactionHash}`);
-            this.logger.log(receipt);
+        while (attempt < maxRetries) {
+            try {
+                attempt++;
+                this.logger.log("Doing computation with the following args:");
+                this.logger.debug(input);
+                this.logger.debug("Compute Proxy Contract Address:" + this.contractAddress);
 
-            // Extract event logs from the transaction receipt
-            const eventLogs = receipt.logs;
-            if (eventLogs.length === 0) {
-                throw new Error('No RequestResolved event found in transaction logs');
+                let transactionResponse: TransactionResponse;
+
+                try {
+                    transactionResponse = await this.contract.executeRequest(input, {
+                        gasLimit: 10000000n,
+                    });
+                } catch (e) {
+                    this.logger.error(e);
+                    throw e;
+                }
+
+                this.logger.log(`Compute Transaction sent: ${transactionResponse.hash}`);
+
+                let receipt: TransactionReceipt;
+                try {
+                    receipt = await transactionResponse.wait();
+                    this.logger.log(`Compute Transaction mined: ${transactionResponse.hash}`);
+                    this.logger.log(receipt);
+
+                    if (receipt.status === 0) { // 0 indicates transaction failure
+                        this.logger.error(`Compute transaction ${transactionResponse.hash} reverted`);
+                        throw new Error(`Transaction reverted`);
+                    }
+                } catch (e) {
+                    this.logger.error("waitForTransactionReceipt failed");
+                    this.logger.error(e);
+                    throw e;
+                }
+
+                // Extract event logs from the transaction receipt
+                const eventLogs = receipt.logs;
+                if (eventLogs.length === 0) {
+                    this.logger.error("eventLogs length is 0");
+                    throw new Error('No RequestResolved event found in transaction logs');
+                }
+
+                const event = this.contract.interface.parseLog(eventLogs[0]);
+
+                if (event.name !== 'RequestResolved') {
+                    this.logger.error('Unexpected event type');
+                    throw new Error('Unexpected event type');
+                }
+
+                return event.args;
+            } catch (error) {
+                this.logger.error(`Error executing request, attempt ${attempt} of ${maxRetries}: ${error.message}`);
+                lastError = error;
+
+                if (attempt < maxRetries) {
+                    this.logger.log(`Waiting for ${retryDelay / 1000} seconds before retrying...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay)); // Wait for 5 seconds before retrying
+                } else {
+                    this.logger.error(`Max retry attempts reached. Failing with error: ${lastError.message}`);
+                    throw lastError;
+                }
             }
-
-            const requestResolvedEvent = eventLogs[0];
-            const topics = encodeEventTopics({
-                abi: [this.requestResolvedEventAbi],
-                eventName: 'RequestResolved'
-            })
-            this.logger.log('eventTopic: ' + topics);
-
-            const event = decodeEventLog({
-                abi: [this.requestResolvedEventAbi],
-                data: requestResolvedEvent.data,
-                // @ts-ignore
-                topics: topics
-            })
-
-            return event;
-        } catch (error) {
-            this.logger.error(`Error executing request: ${error.message}`);
-            throw error;
         }
+
+        throw lastError || new Error("Unexpected error in executeRequest");
     }
 }
