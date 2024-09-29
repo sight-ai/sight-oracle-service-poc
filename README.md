@@ -24,3 +24,31 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+
+## Build Docker Image
+
+1. (Optional) Specify environment variable ORG_NAME and VERSION 
+ORG_NAME=sight-ai
+VERSION=0.0.1
+
+2. Build local docker image
+```
+docker build --platform=linux/amd64 -t sight-oracle-backend \
+--build-arg ORG_NAME=${ORG_NAME} --build-arg VERSION=${VERSION} .
+```
+
+After the build, user following information to check if ORG_NAME and VERSION are packed into the image:
+
+```
+docker run --rm sight-oracle-backend cat release_info
+```
+
+3. Tag docker image
+```
+docker tag sight-oracle-backend ghcr.io/${ORG_NAME}/sight-oracle-backend:${VERSION}
+```
+
+4. Push image
+```
+docker push ghcr.io/${ORG_NAME}/sight-oracle-backend:${VERSION}
+```
