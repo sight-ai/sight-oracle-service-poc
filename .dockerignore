@@ -11,3 +11,5 @@ types
 deployments
 
 db
+*.env.*.bak
+*.env

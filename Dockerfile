@@ -7,6 +7,18 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json (or yarn.lock) files
 COPY package*.json ./
 
+# Install jq to read JSON files
+RUN apt-get update && apt-get install -y jq
+
+# Declare build arguments with default values
+ARG ORG_NAME=sight-ai
+ARG VERSION
+
+# If VERSION is not provided, extract it from package.json
+RUN if [ -z "$VERSION" ]; then VERSION=$(jq -r .version package.json); fi && \
+    echo "Organization: ${ORG_NAME}" > release_info && \
+    echo "Version: ${VERSION}" >> release_info
+
 # Install PM2 globally
 RUN npm install pm2 -g
 
