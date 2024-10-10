@@ -218,7 +218,7 @@ export const oracleAbi =  [
                     },
                     {
                         "internalType": "bytes",
-                        "name": "extraData",
+                        "name": "payload",
                         "type": "bytes"
                     }
                 ],
@@ -291,7 +291,7 @@ export const oracleAbi =  [
                     },
                     {
                         "internalType": "bytes",
-                        "name": "extraData",
+                        "name": "payload",
                         "type": "bytes"
                     }
                 ],
@@ -537,7 +537,7 @@ export const oracleAbi =  [
                     },
                     {
                         "internalType": "bytes",
-                        "name": "extraData",
+                        "name": "payload",
                         "type": "bytes"
                     }
                 ],

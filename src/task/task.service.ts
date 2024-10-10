@@ -10,6 +10,8 @@ import {ComputeProxyService} from "./compute-proxy.service";
 import {OracleCallbackRequestSchema} from "../schemas/oracle-callback.schema";
 import {OracleCallbackService} from "../gateway/oracle-callback.service";
 import {stringifyBigInt} from "../utils/utils";
+import { keccak256 } from 'ethers';
+import { ConfigService } from '@nestjs/config';
 
 
 const TaskStatus = {
@@ -23,14 +25,18 @@ const TaskStatus = {
 @Injectable()
 export class TaskService {
     private readonly logger = new Logger(TaskService.name);
+    private oracleId: string;
 
     constructor(
         @InjectRepository(TaskEntity) private taskRepository: Repository<TaskEntity>,
         @InjectRepository(RequestEntity) private requestRepository: Repository<RequestEntity>,
         @InjectRepository(OperationEntity) private operationRepository: Repository<OperationEntity>,
+        private readonly configService: ConfigService,
         private readonly computeProxyService: ComputeProxyService,
         private readonly oracleCallbackService: OracleCallbackService
-    ) {}
+    ) {
+        this.oracleId = keccak256(Buffer.from(this.configService.get<string>('ORACLE_ID') as string || this.configService.get<string>('ORACLE_CHAIN_NAME') as string + this.configService.get<string>('ORACLE_CHAIN_ID') as string));
+    }
 
     async createTask(log: any, chainId: number): Promise<TaskEntity> {
         this.logger.log(`create new Task`);
@@ -66,7 +72,7 @@ export class TaskService {
         request.opsCursor = Number(validatedRequest.opsCursor); // Transform BigInt to number
         request.callbackAddr = validatedRequest.callbackAddr;
         request.callbackFunc = validatedRequest.callbackFunc;
-        request.extraData = validatedRequest.extraData;
+        request.payload = validatedRequest.payload;
 
         await this.requestRepository.save(request);
 
@@ -78,7 +84,7 @@ export class TaskService {
         task.chainId = chainId;
         task.callbackAddr = request.callbackAddr;
         task.callbackFunc = request.callbackFunc;
-        task.extraData = request.extraData;
+        task.payload = request.payload;
         task.request = request;
         task.status = TaskStatus.CREATED;
 
@@ -122,11 +128,11 @@ export class TaskService {
             opsCursor: task.request.opsCursor,
             callbackAddr: task.callbackAddr,
             callbackFunc: task.callbackFunc,
-            extraData: task.extraData,
+            payload: task.payload,
         };
 
         try {
-            const response = await this.computeProxyService.executeRequest(request);
+            const response = await this.computeProxyService.executeRequest(this.oracleId, request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully with response:`);
             this.logger.log(response);
@@ -173,7 +179,7 @@ export class TaskService {
 
         const computationResults = JSON.parse(task.responseResults);
 
-        const rawCapsulatedValues = computationResults[1];
+        const rawCapsulatedValues = computationResults[2];
 
         const transformedCapsulatedValues = rawCapsulatedValues.map(element => {
             return {

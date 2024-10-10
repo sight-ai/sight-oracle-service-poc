@@ -44,6 +44,7 @@ export class OracleCallbackService {
 
                 // Check if chain IDs match
                 if (callbackRequest.chainId !== this.oracleChainId) {
+                    attempt = maxRetries;
                     throw new Error(`Chain ID mismatch: expected ${this.oracleChainId}, got ${callbackRequest.chainId}`);
                 }
 

@@ -34,7 +34,7 @@ export class TaskEntity {
     callbackFunc: string;
 
     @Column('text')
-    extraData: string;
+    payload: string;
 
     @ManyToOne(() => RequestEntity, (request) => request.tasks)
     request: RequestEntity;

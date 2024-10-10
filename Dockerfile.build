@@ -1,0 +1,36 @@
+# Use an official Node.js runtime as a parent image
+FROM --platform=linux/amd64 node:20-alpine as builder
+
+# Set the working directory in the container
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json (or yarn.lock) files
+COPY --link package*.json ./
+
+# Install any needed packages specified in package.json
+RUN npm install --registry https://registry.npmmirror.com
+
+# Bundle your app's source code inside the Docker image
+COPY --link . .
+
+# Build your NestJS application
+RUN npm run build
+
+
+FROM --platform=linux/amd64 node:20-alpine as runtime
+
+WORKDIR /usr/src/app
+
+# BUG? always move up one dir level
+#COPY --from=builder /usr/src/app/dist /usr/src/app/node_modules /usr/src/app/package*.json ./
+COPY --link --from=builder /usr/src/app/dist ./dist
+COPY --link --from=builder /usr/src/app/node_modules ./node_modules
+COPY --link --from=builder /usr/src/app/package*.json ./
+
+RUN npm install --registry https://registry.npmmirror.com pm2 -g
+
+# Your application runs on port 3000 by default, expose it
+EXPOSE 3000
+
+# Define command to run the app using PM2 when the container starts
+CMD ["pm2-runtime", "start", "dist/main.js"]

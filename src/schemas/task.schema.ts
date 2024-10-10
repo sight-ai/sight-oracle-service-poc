@@ -11,7 +11,7 @@ const TaskSchema = z.object({
     status: z.string().default('pending'),
     callbackAddr: Address,
     callbackFunc: Bytes4,
-    extraData: z.string(),
+    payload: z.string(),
 });
 
 type Task = z.infer<typeof TaskSchema>;

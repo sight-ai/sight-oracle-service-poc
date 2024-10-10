@@ -19,7 +19,7 @@ const RequestSchema = z.object({
     opsCursor: z.bigint(),
     callbackAddr: Address,
     callbackFunc: Bytes4,
-    extraData: z.string(),
+    payload: z.string(),
 });
 
 type Operation = z.infer<typeof OperationSchema>;
