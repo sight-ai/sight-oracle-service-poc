@@ -12,6 +12,7 @@ import {OracleCallbackService} from "../gateway/oracle-callback.service";
 import {stringifyBigInt} from "../utils/utils";
 import { keccak256 } from 'ethers';
 import { ConfigService } from '@nestjs/config';
+import { OracleSvcEntity } from 'src/entities/oracle-svc.entity';
 
 
 const TaskStatus = {
@@ -25,7 +26,7 @@ const TaskStatus = {
 @Injectable()
 export class TaskService {
     private readonly logger = new Logger(TaskService.name);
-    private oracleId: string;
+    private oracleSvcEntity: OracleSvcEntity;
 
     constructor(
         @InjectRepository(TaskEntity) private taskRepository: Repository<TaskEntity>,
@@ -35,10 +36,14 @@ export class TaskService {
         private readonly computeProxyService: ComputeProxyService,
         private readonly oracleCallbackService: OracleCallbackService
     ) {
-        this.oracleId = keccak256(Buffer.from(this.configService.get<string>('ORACLE_ID') as string || this.configService.get<string>('ORACLE_CHAIN_NAME') as string + this.configService.get<string>('ORACLE_CHAIN_ID') as string));
+
     }
 
-    async createTask(log: any, chainId: number): Promise<TaskEntity> {
+    async setOracleSvcEntity(oracleSvc: OracleSvcEntity) {
+        this.oracleSvcEntity = oracleSvc;
+    }
+
+    async createTask(log: any): Promise<TaskEntity> {
         this.logger.log(`create new Task`);
         // Validate and transform the log data using Zod
         const requestResult = RequestSchema.safeParse(log.args[0]);
@@ -81,7 +86,7 @@ export class TaskService {
         task.requester = request.requester;
         task.transactionHash = log.transactionHash;
         task.blockHash = log.blockHash;
-        task.chainId = chainId;
+        task.oracleSvc = this.oracleSvcEntity;
         task.callbackAddr = request.callbackAddr;
         task.callbackFunc = request.callbackFunc;
         task.payload = request.payload;
@@ -109,7 +114,7 @@ export class TaskService {
     async doComputation(taskId: string): Promise<void> {
         const task = await this.taskRepository.findOne({
             where: { id: taskId },
-            relations: ['request', 'request.ops'],
+            relations: ['request', 'request.ops', 'oracleSvc'],
         });
         if (!task) {
             this.logger.error(`Task with ID ${taskId} not found`);
@@ -132,7 +137,7 @@ export class TaskService {
         };
 
         try {
-            const response = await this.computeProxyService.executeRequest(this.oracleId, request);
+            const response = await this.computeProxyService.executeRequest(this.oracleSvcEntity.id, request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully with response:`);
             this.logger.log(response);
@@ -154,7 +159,7 @@ export class TaskService {
     async doCallback(taskId: string): Promise<void> {
         const task = await this.taskRepository.findOne({
             where: { id: taskId },
-            relations: ['request', 'request.ops'],
+            relations: ['request', 'request.ops', 'oracleSvc'],
         });
         if (!task) {
             this.logger.error(`Task with ID ${taskId} not found`);
@@ -189,7 +194,7 @@ export class TaskService {
         });
 
         const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
-            chainId: task.chainId,
+            chainId: task.oracleSvc.chainId,
             requestId: task.requestId,
             callbackAddr: task.callbackAddr,
             callbackFunc: task.callbackFunc,

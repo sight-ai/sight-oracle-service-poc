@@ -152,7 +152,7 @@ export const computeProxyAbi = [
       {
         indexed: false,
         internalType: 'bytes32',
-        name: 'oracleId',
+        name: 'oracleSvcId',
         type: 'bytes32',
       },
       {
@@ -177,7 +177,7 @@ export const computeProxyAbi = [
       {
         indexed: false,
         internalType: 'bytes32',
-        name: 'oracleId',
+        name: 'oracleSvcId',
         type: 'bytes32',
       },
       {
@@ -214,7 +214,7 @@ export const computeProxyAbi = [
       {
         indexed: false,
         internalType: 'bytes32',
-        name: 'oracleId',
+        name: 'oracleSvcId',
         type: 'bytes32',
       },
       {
@@ -426,7 +426,7 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'bytes32',
-        name: 'oracleId',
+        name: 'oracleSvcId',
         type: 'bytes32',
       },
       {
@@ -516,7 +516,7 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'bytes32',
-        name: 'oracleId',
+        name: 'oracleSvcId',
         type: 'bytes32',
       },
       {

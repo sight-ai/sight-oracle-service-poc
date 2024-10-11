@@ -24,7 +24,7 @@ export class ComputeProxyService {
         this.contract = new ethers.Contract(this.contractAddress, computeProxyAbi, this.wallet);
     }
 
-    async executeRequest(oracleId: string, input: any): Promise<any> {
+    async executeRequest(oracleSvcId: string, input: any): Promise<any> {
         const maxRetries = 5;
         const retryDelay = 5000; // 5 seconds
         let attempt = 0;
@@ -40,10 +40,11 @@ export class ComputeProxyService {
                 let transactionResponse: TransactionResponse;
 
                 try {
-                    transactionResponse = await this.contract.executeRequest(oracleId, input, {
+                    transactionResponse = await this.contract.executeRequest(oracleSvcId, input, {
                         gasLimit: 10000000n,
                     });
                 } catch (e) {
+                    attempt = maxRetries;
                     this.logger.error(e);
                     throw e;
                 }
@@ -54,9 +55,11 @@ export class ComputeProxyService {
                 try {
                     receipt = await transactionResponse.wait();
                     this.logger.log(`Compute Transaction mined: ${transactionResponse.hash}`);
-                    this.logger.log(receipt);
+                    // this.logger.log(receipt);
+                    console.log(receipt);
 
                     if (receipt.status === 0) { // 0 indicates transaction failure
+                        attempt = maxRetries;
                         this.logger.error(`Compute transaction ${transactionResponse.hash} reverted`);
                         throw new Error(`Transaction reverted`);
                     }
@@ -69,13 +72,14 @@ export class ComputeProxyService {
                 // Extract event logs from the transaction receipt
                 const eventLogs = receipt.logs;
                 if (eventLogs.length === 0) {
+                    attempt = maxRetries;
                     this.logger.error("eventLogs length is 0");
                     throw new Error('No RequestResolved event found in transaction logs');
                 }
 
                 const event = this.contract.interface.parseLog(eventLogs[0]);
 
-                if (event.args.oracleId !== oracleId) {
+                if (event.args.oracleSvcId !== oracleSvcId) {
                     attempt = maxRetries;
                     this.logger.error('Unexpected oracle id');
                     throw new Error('Unexpected oracle id');

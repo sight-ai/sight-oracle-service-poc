@@ -1,9 +1,12 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {createPublicClient, http, PublicClient} from 'viem';
+import {createPublicClient, http, keccak256, PublicClient} from 'viem';
 import { oracleChain } from './oracle.chain'; // Import your custom chain definition
 import { TaskService } from '../task/task.service';
 import { oracleAbi } from "./oracle.abi";
+import { OracleSvcEntity } from 'src/entities/oracle-svc.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 // Setup viem client with custom chain
 const client = createPublicClient({
@@ -17,8 +20,10 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
     private intervalId;
     private lastBlockHeight: bigint;
     private contractAddress: `0x${string}`;
+    private oracleSvcEntity: OracleSvcEntity;
 
     constructor(
+        @InjectRepository(OracleSvcEntity) private oracleRepository: Repository<OracleSvcEntity>,
         private readonly taskService: TaskService,
         private readonly configService: ConfigService,
     ) {
@@ -28,6 +33,23 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
 
     async onModuleInit() {
         this.logger.log('onModuleInit called...');
+        const chainId = +this.configService.get<string>('ORACLE_CHAIN_ID');
+        const oracleSvcSymbol = Buffer.from(this.configService.get<string>('ORACLE_SVC_SYMBOL') as string || this.configService.get<string>('ORACLE_CHAIN_NAME') as string + this.configService.get<string>('ORACLE_CHAIN_ID') as string);
+        this.logger.log(oracleSvcSymbol);
+        const oracleSvcId = keccak256(oracleSvcSymbol);
+        this.oracleSvcEntity = await this.oracleRepository.findOneBy({id: oracleSvcId});
+        if(!this.oracleSvcEntity) {
+            const oracle = new OracleSvcEntity();
+            oracle.id = oracleSvcId;
+            oracle.address = this.contractAddress;
+            oracle.chainId = chainId;
+            oracle.name = this.configService.get<string>('ORACLE_CHAIN_NAME');
+            this.oracleRepository.save(oracle);
+            this.oracleSvcEntity = oracle;
+        }
+        this.logger.log(JSON.stringify(this.oracleSvcEntity));
+        this.taskService.setOracleSvcEntity(this.oracleSvcEntity);
+
         // Get the current block height
 
         this.lastBlockHeight = await client.getBlockNumber();
@@ -70,7 +92,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
                 } else {
                     for (const log of logs) {
                         this.logger.log('RequestSent Event received:', log.transactionHash);
-                        await this.taskService.createTask(log, oracleChain.id); // Create a new task
+                        await this.taskService.createTask(log); // Create a new task
                     }
                 }
 
