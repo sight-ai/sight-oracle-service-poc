@@ -12,7 +12,8 @@ import {OracleCallbackService} from "../gateway/oracle-callback.service";
 import {stringifyBigInt} from "../utils/utils";
 import { keccak256 } from 'ethers';
 import { ConfigService } from '@nestjs/config';
-import { OracleSvcEntity } from 'src/entities/oracle-svc.entity';
+import { OracleInstanceEntity } from 'src/entities/oracle-instance.entity';
+import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
 
 
 const TaskStatus = {
@@ -26,7 +27,6 @@ const TaskStatus = {
 @Injectable()
 export class TaskService {
     private readonly logger = new Logger(TaskService.name);
-    private oracleSvcEntity: OracleSvcEntity;
 
     constructor(
         @InjectRepository(TaskEntity) private taskRepository: Repository<TaskEntity>,
@@ -34,19 +34,17 @@ export class TaskService {
         @InjectRepository(OperationEntity) private operationRepository: Repository<OperationEntity>,
         private readonly configService: ConfigService,
         private readonly computeProxyService: ComputeProxyService,
+        private readonly oracleInstanceService: OracleInstanceService,
         private readonly oracleCallbackService: OracleCallbackService
     ) {
 
     }
 
-    async setOracleSvcEntity(oracleSvc: OracleSvcEntity) {
-        this.oracleSvcEntity = oracleSvc;
-    }
-
     async createTask(log: any): Promise<TaskEntity> {
         this.logger.log(`create new Task`);
         // Validate and transform the log data using Zod
-        const requestResult = RequestSchema.safeParse(log.args[0]);
+        const reqId = log.args.reqId;
+        const requestResult = RequestSchema.safeParse(log.args.req);
         if (!requestResult.success) {
             this.logger.error('Invalid request log data:', requestResult.error.errors);
             throw new Error('Invalid request log data');
@@ -55,7 +53,7 @@ export class TaskService {
         const validatedRequest: Request = requestResult.data;
 
         // Check if request already exists
-        const existRequest = await this.requestRepository.findOneBy({id: validatedRequest.id});
+        const existRequest = await this.requestRepository.findOneBy({id: reqId});
         if(existRequest) {
             this.logger.log('Same request already exists, skip.')
             return null;
@@ -71,7 +69,7 @@ export class TaskService {
         });
 
         const request = new RequestEntity();
-        request.id = validatedRequest.id;
+        request.id = reqId;
         request.requester = validatedRequest.requester;
         request.ops = operations;
         request.opsCursor = Number(validatedRequest.opsCursor); // Transform BigInt to number
@@ -86,7 +84,7 @@ export class TaskService {
         task.requester = request.requester;
         task.transactionHash = log.transactionHash;
         task.blockHash = log.blockHash;
-        task.oracleSvc = this.oracleSvcEntity;
+        task.oracleInstanceId = this.oracleInstanceService.getOracleInstanceEntity().id;
         task.callbackAddr = request.callbackAddr;
         task.callbackFunc = request.callbackFunc;
         task.payload = request.payload;
@@ -94,8 +92,8 @@ export class TaskService {
         task.status = TaskStatus.CREATED;
 
         this.logger.log('Creating task for requestID: ' + task.requestId);
-        this.logger.log(JSON.stringify(task));
         const savedTask = await this.taskRepository.save(task);
+        this.logger.log(JSON.stringify(savedTask));
 
         // TODO: Decouple this logic by scan task
         await this.executeTask(savedTask.id);
@@ -114,7 +112,7 @@ export class TaskService {
     async doComputation(taskId: string): Promise<void> {
         const task = await this.taskRepository.findOne({
             where: { id: taskId },
-            relations: ['request', 'request.ops', 'oracleSvc'],
+            relations: ['request', 'request.ops'],
         });
         if (!task) {
             this.logger.error(`Task with ID ${taskId} not found`);
@@ -123,7 +121,6 @@ export class TaskService {
 
         // Transform task data into the format expected by the ComputeProxy contract
         const request = {
-            id: task.requestId,
             requester: task.requester,
             ops: task.request.ops.sort(function(a,b){return a.index - b.index}).map(op => ({
                 opcode: op.opcode,
@@ -137,7 +134,7 @@ export class TaskService {
         };
 
         try {
-            const response = await this.computeProxyService.executeRequest(this.oracleSvcEntity.id, request);
+            const response = await this.computeProxyService.executeRequest(this.oracleInstanceService.getOracleInstanceEntity().id, task.requestId, request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully with response:`);
             this.logger.log(response);
@@ -159,7 +156,7 @@ export class TaskService {
     async doCallback(taskId: string): Promise<void> {
         const task = await this.taskRepository.findOne({
             where: { id: taskId },
-            relations: ['request', 'request.ops', 'oracleSvc'],
+            relations: ['request', 'request.ops'],
         });
         if (!task) {
             this.logger.error(`Task with ID ${taskId} not found`);
@@ -194,7 +191,7 @@ export class TaskService {
         });
 
         const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
-            chainId: task.oracleSvc.chainId,
+            chainId: this.oracleInstanceService.getOracleInstanceEntity().chainId,
             requestId: task.requestId,
             callbackAddr: task.callbackAddr,
             callbackFunc: task.callbackFunc,

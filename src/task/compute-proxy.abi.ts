@@ -62,7 +62,7 @@ export const computeProxyAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
+        indexed: true,
         internalType: 'uint256',
         name: 'reqId',
         type: 'uint256',
@@ -150,15 +150,15 @@ export const computeProxyAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
-        name: 'oracleSvcId',
+        name: 'oracleInstanceId',
         type: 'bytes32',
       },
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
-        name: 'id',
+        name: 'reqId',
         type: 'bytes32',
       },
       {
@@ -175,15 +175,15 @@ export const computeProxyAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
-        name: 'oracleSvcId',
+        name: 'oracleInstanceId',
         type: 'bytes32',
       },
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
-        name: 'id',
+        name: 'reqId',
         type: 'bytes32',
       },
       {
@@ -212,13 +212,13 @@ export const computeProxyAbi = [
     anonymous: false,
     inputs: [
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
-        name: 'oracleSvcId',
+        name: 'oracleInstanceId',
         type: 'bytes32',
       },
       {
-        indexed: false,
+        indexed: true,
         internalType: 'bytes32',
         name: 'reqId',
         type: 'bytes32',
@@ -357,12 +357,12 @@ export const computeProxyAbi = [
         type: 'bytes32',
       },
       {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+      {
         components: [
-          {
-            internalType: 'bytes32',
-            name: 'id',
-            type: 'bytes32',
-          },
           {
             internalType: 'address',
             name: 'requester',
@@ -426,16 +426,16 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'bytes32',
-        name: 'oracleSvcId',
+        name: 'oracleInstanceId',
+        type: 'bytes32',
+      },
+      {
+        internalType: 'bytes32',
+        name: 'reqId',
         type: 'bytes32',
       },
       {
         components: [
-          {
-            internalType: 'bytes32',
-            name: 'id',
-            type: 'bytes32',
-          },
           {
             internalType: 'address',
             name: 'requester',
@@ -516,16 +516,16 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'bytes32',
-        name: 'oracleSvcId',
+        name: 'oracleInstanceId',
+        type: 'bytes32',
+      },
+      {
+        internalType: 'bytes32',
+        name: 'reqId',
         type: 'bytes32',
       },
       {
         components: [
-          {
-            internalType: 'bytes32',
-            name: 'id',
-            type: 'bytes32',
-          },
           {
             internalType: 'address',
             name: 'requester',

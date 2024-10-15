@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
 import { RequestEntity } from './request.entity';
-import { OracleSvcEntity } from './oracle-svc.entity';
 
 @Entity()
 export class TaskEntity {
@@ -19,8 +18,9 @@ export class TaskEntity {
     @Column()
     blockHash: string;
 
-    @ManyToOne(() => OracleSvcEntity, (request) => request.tasks)
-    oracleSvc: OracleSvcEntity;
+    // @ManyToOne(() => OracleInstanceEntity, (request) => request.tasks)
+    @Column()
+    oracleInstanceId: string;
 
     @Column({ default: 'pending' })
     status: string;

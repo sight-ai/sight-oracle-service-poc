@@ -6,12 +6,13 @@ import {RequestEntity} from "../entities/request.entity";
 import { OperationEntity } from 'src/entities/operation.entity';
 import {ComputeProxyService} from "./compute-proxy.service";
 import {GatewayModule} from "../gateway/gateway.module";
-import { OracleSvcEntity } from 'src/entities/oracle-svc.entity';
+import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
+import { OracleInstanceEntity } from 'src/entities/oracle-instance.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TaskEntity, RequestEntity, OperationEntity, OracleSvcEntity]),
+  imports: [TypeOrmModule.forFeature([TaskEntity, RequestEntity, OperationEntity, OracleInstanceEntity]),
     forwardRef(() => GatewayModule)],
-  providers: [TaskService, ComputeProxyService],
+  providers: [TaskService, ComputeProxyService, OracleInstanceService],
   exports: [TaskService]
 })
 export class TaskModule {}

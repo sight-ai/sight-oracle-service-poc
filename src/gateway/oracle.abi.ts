@@ -1,567 +1,595 @@
-export const oracleAbi =  [
-    {
-        "inputs": [],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            }
+export const oracleAbi = [
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'previousOwner',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'OwnershipTransferStarted',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'previousOwner',
+        type: 'address',
+      },
+      {
+        indexed: true,
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'OwnershipTransferred',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'bool',
+        name: 'success',
+        type: 'bool',
+      },
+    ],
+    name: 'ReencryptCallback',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            components: [
+              {
+                internalType: 'uint256',
+                name: 'data',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint8',
+                name: 'valueType',
+                type: 'uint8',
+              },
+            ],
+            internalType: 'struct CapsulatedValue',
+            name: 'target',
+            type: 'tuple',
+          },
+          {
+            internalType: 'bytes32',
+            name: 'publicKey',
+            type: 'bytes32',
+          },
+          {
+            internalType: 'bytes',
+            name: 'signature',
+            type: 'bytes',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
         ],
-        "name": "OwnableInvalidOwner",
-        "type": "error"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "account",
-                "type": "address"
-            }
+        indexed: false,
+        internalType: 'struct ReencryptRequest',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'ReencryptSent',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'bool',
+        name: 'success',
+        type: 'bool',
+      },
+    ],
+    name: 'RequestCallback',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            components: [
+              {
+                internalType: 'uint8',
+                name: 'opcode',
+                type: 'uint8',
+              },
+              {
+                internalType: 'uint256[]',
+                name: 'operands',
+                type: 'uint256[]',
+              },
+              {
+                internalType: 'uint64',
+                name: 'value',
+                type: 'uint64',
+              },
+            ],
+            internalType: 'struct Operation[]',
+            name: 'ops',
+            type: 'tuple[]',
+          },
+          {
+            internalType: 'uint256',
+            name: 'opsCursor',
+            type: 'uint256',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
+          {
+            internalType: 'bytes',
+            name: 'payload',
+            type: 'bytes',
+          },
         ],
-        "name": "OwnableUnauthorizedAccount",
-        "type": "error"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "previousOwner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
+        indexed: false,
+        internalType: 'struct Request',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'RequestSent',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'bool',
+        name: 'success',
+        type: 'bool',
+      },
+    ],
+    name: 'SaveCiphertextCallback',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes',
+            name: 'ciphertext',
+            type: 'bytes',
+          },
+          {
+            internalType: 'uint8',
+            name: 'ciphertextType',
+            type: 'uint8',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
         ],
-        "name": "OwnershipTransferStarted",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "previousOwner",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
+        indexed: false,
+        internalType: 'struct SaveCiphertextRequest',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'SaveCiphertextSent',
+    type: 'event',
+  },
+  {
+    inputs: [],
+    name: 'VERSION',
+    outputs: [
+      {
+        internalType: 'string',
+        name: '',
+        type: 'string',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'acceptOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'data',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
         ],
-        "name": "OwnershipTransferred",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "bytes32",
-                "name": "",
-                "type": "bytes32"
-            },
-            {
-                "indexed": true,
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
+        internalType: 'struct CapsulatedValue[]',
+        name: 'result',
+        type: 'tuple[]',
+      },
+    ],
+    name: 'callback',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'owner',
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'pendingOwner',
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        internalType: 'bytes',
+        name: 'result',
+        type: 'bytes',
+      },
+    ],
+    name: 'reencryptCallback',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'data',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
         ],
-        "name": "ReencryptCallback",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint256",
-                                "name": "data",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint8",
-                                "name": "valueType",
-                                "type": "uint8"
-                            }
-                        ],
-                        "internalType": "struct CapsulatedValue",
-                        "name": "target",
-                        "type": "tuple"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "publicKey",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "signature",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    }
-                ],
-                "indexed": false,
-                "internalType": "struct ReencryptRequestBuilder.ReencryptRequest",
-                "name": "",
-                "type": "tuple"
-            }
+        internalType: 'struct CapsulatedValue',
+        name: 'result',
+        type: 'tuple',
+      },
+    ],
+    name: 'saveCiphertextCallback',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes',
+            name: 'ciphertext',
+            type: 'bytes',
+          },
+          {
+            internalType: 'uint8',
+            name: 'ciphertextType',
+            type: 'uint8',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
         ],
-        "name": "ReencryptSent",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "bytes32",
-                "name": "",
-                "type": "bytes32"
-            },
-            {
-                "indexed": true,
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
-            }
+        internalType: 'struct SaveCiphertextRequest',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'send',
+    outputs: [
+      {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            components: [
+              {
+                internalType: 'uint256',
+                name: 'data',
+                type: 'uint256',
+              },
+              {
+                internalType: 'uint8',
+                name: 'valueType',
+                type: 'uint8',
+              },
+            ],
+            internalType: 'struct CapsulatedValue',
+            name: 'target',
+            type: 'tuple',
+          },
+          {
+            internalType: 'bytes32',
+            name: 'publicKey',
+            type: 'bytes32',
+          },
+          {
+            internalType: 'bytes',
+            name: 'signature',
+            type: 'bytes',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
         ],
-        "name": "RequestCallback",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint8",
-                                "name": "opcode",
-                                "type": "uint8"
-                            },
-                            {
-                                "internalType": "uint256[]",
-                                "name": "operands",
-                                "type": "uint256[]"
-                            },
-                            {
-                                "internalType": "uint64",
-                                "name": "value",
-                                "type": "uint64"
-                            }
-                        ],
-                        "internalType": "struct RequestBuilder.Operation[]",
-                        "name": "ops",
-                        "type": "tuple[]"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "opsCursor",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "payload",
-                        "type": "bytes"
-                    }
-                ],
-                "indexed": false,
-                "internalType": "struct RequestBuilder.Request",
-                "name": "",
-                "type": "tuple"
-            }
+        internalType: 'struct ReencryptRequest',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'send',
+    outputs: [
+      {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            components: [
+              {
+                internalType: 'uint8',
+                name: 'opcode',
+                type: 'uint8',
+              },
+              {
+                internalType: 'uint256[]',
+                name: 'operands',
+                type: 'uint256[]',
+              },
+              {
+                internalType: 'uint64',
+                name: 'value',
+                type: 'uint64',
+              },
+            ],
+            internalType: 'struct Operation[]',
+            name: 'ops',
+            type: 'tuple[]',
+          },
+          {
+            internalType: 'uint256',
+            name: 'opsCursor',
+            type: 'uint256',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
+          {
+            internalType: 'bytes',
+            name: 'payload',
+            type: 'bytes',
+          },
         ],
-        "name": "RequestSent",
-        "type": "event"
-    },
-    {
-        "inputs": [],
-        "name": "acceptOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint8",
-                                "name": "opcode",
-                                "type": "uint8"
-                            },
-                            {
-                                "internalType": "uint256[]",
-                                "name": "operands",
-                                "type": "uint256[]"
-                            },
-                            {
-                                "internalType": "uint64",
-                                "name": "value",
-                                "type": "uint64"
-                            }
-                        ],
-                        "internalType": "struct RequestBuilder.Operation[]",
-                        "name": "ops",
-                        "type": "tuple[]"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "opsCursor",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "payload",
-                        "type": "bytes"
-                    }
-                ],
-                "internalType": "struct RequestBuilder.Request",
-                "name": "request",
-                "type": "tuple"
-            },
-            {
-                "components": [
-                    {
-                        "internalType": "uint256",
-                        "name": "data",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "uint8",
-                        "name": "valueType",
-                        "type": "uint8"
-                    }
-                ],
-                "internalType": "struct CapsulatedValue[]",
-                "name": "result",
-                "type": "tuple[]"
-            }
-        ],
-        "name": "callback",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "owner",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "pendingOwner",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint256",
-                                "name": "data",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint8",
-                                "name": "valueType",
-                                "type": "uint8"
-                            }
-                        ],
-                        "internalType": "struct CapsulatedValue",
-                        "name": "target",
-                        "type": "tuple"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "publicKey",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "signature",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    }
-                ],
-                "internalType": "struct ReencryptRequestBuilder.ReencryptRequest",
-                "name": "reen_req",
-                "type": "tuple"
-            }
-        ],
-        "name": "reencrypt",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint256",
-                                "name": "data",
-                                "type": "uint256"
-                            },
-                            {
-                                "internalType": "uint8",
-                                "name": "valueType",
-                                "type": "uint8"
-                            }
-                        ],
-                        "internalType": "struct CapsulatedValue",
-                        "name": "target",
-                        "type": "tuple"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "publicKey",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "signature",
-                        "type": "bytes"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    }
-                ],
-                "internalType": "struct ReencryptRequestBuilder.ReencryptRequest",
-                "name": "reen_req",
-                "type": "tuple"
-            },
-            {
-                "internalType": "bytes",
-                "name": "result",
-                "type": "bytes"
-            }
-        ],
-        "name": "reencryptCallback",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "renounceOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "components": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "requester",
-                        "type": "address"
-                    },
-                    {
-                        "components": [
-                            {
-                                "internalType": "uint8",
-                                "name": "opcode",
-                                "type": "uint8"
-                            },
-                            {
-                                "internalType": "uint256[]",
-                                "name": "operands",
-                                "type": "uint256[]"
-                            },
-                            {
-                                "internalType": "uint64",
-                                "name": "value",
-                                "type": "uint64"
-                            }
-                        ],
-                        "internalType": "struct RequestBuilder.Operation[]",
-                        "name": "ops",
-                        "type": "tuple[]"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "opsCursor",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "callbackAddr",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "bytes4",
-                        "name": "callbackFunc",
-                        "type": "bytes4"
-                    },
-                    {
-                        "internalType": "bytes",
-                        "name": "payload",
-                        "type": "bytes"
-                    }
-                ],
-                "internalType": "struct RequestBuilder.Request",
-                "name": "request",
-                "type": "tuple"
-            }
-        ],
-        "name": "send",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "newOwner",
-                "type": "address"
-            }
-        ],
-        "name": "transferOwnership",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
+        internalType: 'struct Request',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'send',
+    outputs: [
+      {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
+    name: 'transferOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
 ];

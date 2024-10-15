@@ -13,7 +13,6 @@ const OperationSchema = z.object({
 });
 
 const RequestSchema = z.object({
-    id: Bytes32,
     requester: Address,
     ops: z.array(OperationSchema),
     opsCursor: z.bigint(),

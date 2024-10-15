@@ -1,8 +1,7 @@
 import {Entity, Column, OneToMany, PrimaryColumn} from 'typeorm';
-import { TaskEntity } from './task.entity';
 
 @Entity()
-export class OracleSvcEntity {
+export class OracleInstanceEntity {
     @PrimaryColumn()
     id: string;
 
@@ -15,6 +14,6 @@ export class OracleSvcEntity {
     @Column()
     address: string;
 
-    @OneToMany(() => TaskEntity, (task) => task.oracleSvc)
-    tasks: TaskEntity[];
+    @Column({ type: 'bigint', default: 0, nullable: true })
+    height: string
 }

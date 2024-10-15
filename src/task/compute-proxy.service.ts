@@ -24,7 +24,7 @@ export class ComputeProxyService {
         this.contract = new ethers.Contract(this.contractAddress, computeProxyAbi, this.wallet);
     }
 
-    async executeRequest(oracleSvcId: string, input: any): Promise<any> {
+    async executeRequest(oracleInstanceId: string, reqId: string, input: any): Promise<any> {
         const maxRetries = 5;
         const retryDelay = 5000; // 5 seconds
         let attempt = 0;
@@ -40,9 +40,10 @@ export class ComputeProxyService {
                 let transactionResponse: TransactionResponse;
 
                 try {
-                    transactionResponse = await this.contract.executeRequest(oracleSvcId, input, {
+                    transactionResponse = await this.contract.executeRequest(oracleInstanceId, reqId, input, {
                         gasLimit: 10000000n,
                     });
+                    console.log(transactionResponse);
                 } catch (e) {
                     attempt = maxRetries;
                     this.logger.error(e);
@@ -79,7 +80,7 @@ export class ComputeProxyService {
 
                 const event = this.contract.interface.parseLog(eventLogs[0]);
 
-                if (event.args.oracleSvcId !== oracleSvcId) {
+                if (event.args.oracleInstanceId !== oracleInstanceId) {
                     attempt = maxRetries;
                     this.logger.error('Unexpected oracle id');
                     throw new Error('Unexpected oracle id');
