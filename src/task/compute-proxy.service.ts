@@ -59,13 +59,11 @@ export class ComputeProxyService {
                     this.logger.log(`Compute transaction ${transactionResponse.hash} handing`);
                     transactionResponse.wait(1).then(async(receipt)=>{
                         if (receipt.status === 0) { // 0 indicates transaction failure
-                            attempt = maxRetries;
                             this.logger.error(`Compute transaction ${transactionResponse.hash} reverted`);
                             throw new Error(`Transaction reverted`);
                         }
                         const eventLogs = receipt.logs;
                         if (eventLogs.length === 0) {
-                            attempt = maxRetries;
                             this.logger.error("eventLogs length is 0");
                             throw new Error('No RequestResolved event found in transaction logs');
                         }
@@ -73,13 +71,11 @@ export class ComputeProxyService {
                         const event = this.contract.interface.parseLog(eventLogs[0]);
 
                         if (event.args.oracleInstanceId !== oracleInstanceId) {
-                            attempt = maxRetries;
                             this.logger.error('Unexpected oracle id');
                             throw new Error('Unexpected oracle id');
                         }
 
                         if (event.name !== 'RequestResolved') {
-                            attempt = maxRetries;
                             this.logger.error('Unexpected event type');
                             throw new Error('Unexpected event type');
                         }
@@ -99,7 +95,6 @@ export class ComputeProxyService {
                         this.logger.log(`${transactionResponse.hash}'s receipt is done.`);
                     });
                 } catch (e) {
-                    attempt = maxRetries;
                     this.logger.error(e);
                     throw e;
                 }
