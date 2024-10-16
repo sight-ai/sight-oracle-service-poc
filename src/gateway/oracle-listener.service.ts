@@ -34,7 +34,7 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('onModuleInit called...');
 
         // Get the current block height
-        this.logger.log('fetching lastBlockHeight as ' + this.oracleInstanceService.getOracleInstanceHeight())
+        this.logger.log('fetching lastBlockHeight as ' + await this.oracleInstanceService.getOracleInstanceHeight())
         try {
             this.startFetchingLogs();
         } catch (error) {

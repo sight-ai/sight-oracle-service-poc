@@ -43,6 +43,9 @@ export class TaskEntity {
     @Column('text', { nullable: true }) // JSON Wrapped
     responseResults: string;
 
+    @Column({ nullable: true })
+    executeResponseHash: string;
+
     @Column('text', {nullable: true})
     callbackRecipient: string;
 }

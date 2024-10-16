@@ -4,25 +4,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TaskEntity } from '../entities/task.entity';
 import { RequestEntity } from '../entities/request.entity';
+import { TaskStatus } from "../schemas/task.schema";
 import { RequestSchema, Request } from '../schemas/request.schema';
-import {OperationEntity} from "../entities/operation.entity";
-import {ComputeProxyService} from "./compute-proxy.service";
-import {OracleCallbackRequestSchema} from "../schemas/oracle-callback.schema";
-import {OracleCallbackService} from "../gateway/oracle-callback.service";
-import {stringifyBigInt} from "../utils/utils";
-import { keccak256 } from 'ethers';
+import { OperationEntity } from "../entities/operation.entity";
+import { ComputeProxyService } from "./compute-proxy.service";
+import { OracleCallbackRequestSchema } from "../schemas/oracle-callback.schema";
+import { OracleCallbackService } from "../gateway/oracle-callback.service";
+import { stringifyBigInt } from "../utils/utils";
 import { ConfigService } from '@nestjs/config';
-import { OracleInstanceEntity } from 'src/entities/oracle-instance.entity';
 import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
 
-
-const TaskStatus = {
-    CREATED: 'created',
-    COMPUTE_EXECUTED: 'compute-executed', // successfully execute the computation
-    COMPUTE_RESPONSE_CAPTURED: 'compute-response-captured', // successfully execute the computation
-    CALLBACK_STARTED: 'callback-started',
-    CALLBACK_COMPLETE: 'callback-complete'
-}
 
 @Injectable()
 export class TaskService {
@@ -34,8 +25,7 @@ export class TaskService {
         @InjectRepository(OperationEntity) private operationRepository: Repository<OperationEntity>,
         private readonly configService: ConfigService,
         private readonly computeProxyService: ComputeProxyService,
-        private readonly oracleInstanceService: OracleInstanceService,
-        private readonly oracleCallbackService: OracleCallbackService
+        private readonly oracleInstanceService: OracleInstanceService
     ) {
 
     }
@@ -93,7 +83,7 @@ export class TaskService {
 
         this.logger.log('Creating task for requestID: ' + task.requestId);
         const savedTask = await this.taskRepository.save(task);
-        this.logger.log(JSON.stringify(savedTask));
+        this.logger.debug(JSON.stringify(savedTask));
 
         // TODO: Decouple this logic by scan task
         await this.executeTask(savedTask.id);
@@ -103,10 +93,10 @@ export class TaskService {
 
     async executeTask(taskId: string): Promise<void> {
         this.logger.log('Executing task ' + taskId);
-        this.logger.log('Doing computation ' + taskId);
         await this.doComputation(taskId);
-        this.logger.log('Doing callback ' + taskId);
-        await this.doCallback(taskId);
+        this.logger.log('Waitting computation receipt ' + taskId);
+        // this.logger.log('Doing callback ' + taskId);
+        // await this.doCallback(taskId);
     }
 
     async doComputation(taskId: string): Promise<void> {
@@ -137,13 +127,10 @@ export class TaskService {
             const response = await this.computeProxyService.executeRequest(this.oracleInstanceService.getOracleInstanceEntity().id, task.requestId, request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully with response:`);
-            this.logger.log(response);
-            task.status = TaskStatus.COMPUTE_EXECUTED;
+            this.logger.debug(JSON.stringify(response, stringifyBigInt));
+            task.status = TaskStatus.COMPUTE_EXECUTING;
+            task.executeResponseHash = response.hash;
             await this.taskRepository.save(task);
-            task.responseResults = JSON.stringify(response, stringifyBigInt);
-            task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
-            await this.taskRepository.save(task);
-            this.logger.log('Task computation response captured');
         } catch (error) {
             // TODO: retry
             this.logger.error(`Error executing task ${taskId}: ${error.message}`);
@@ -151,69 +138,4 @@ export class TaskService {
             await this.taskRepository.save(task);
         }
     }
-
-
-    async doCallback(taskId: string): Promise<void> {
-        const task = await this.taskRepository.findOne({
-            where: { id: taskId },
-            relations: ['request', 'request.ops'],
-        });
-        if (!task) {
-            this.logger.error(`Task with ID ${taskId} not found`);
-            throw new Error(`Task with ID ${taskId} not found`);
-        }
-
-        if(task.failed) {
-            this.logger.error(`Task failed in previous step, skip`);
-            return;
-        }
-
-        if(task.status !== TaskStatus.COMPUTE_RESPONSE_CAPTURED) {
-            this.logger.error('No response captured');
-            throw new Error(`Task with ID ${taskId} no response captured`);
-        }
-
-        task.status = TaskStatus.CALLBACK_STARTED;
-        await this.taskRepository.save(task);
-
-        this.logger.log('Callback following result:');
-        this.logger.log(task.responseResults);
-
-        const computationResults = JSON.parse(task.responseResults);
-
-        const rawCapsulatedValues = computationResults[2];
-
-        const transformedCapsulatedValues = rawCapsulatedValues.map(element => {
-            return {
-                data: BigInt(element[0]),
-                valueType: BigInt(element[1])
-            }
-        });
-
-        const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
-            chainId: this.oracleInstanceService.getOracleInstanceEntity().chainId,
-            requestId: task.requestId,
-            callbackAddr: task.callbackAddr,
-            callbackFunc: task.callbackFunc,
-            responseResults: transformedCapsulatedValues,
-        });
-
-        if(!callbackRequestParse.success) {
-            this.logger.error('Invalid callbackRequest data:', callbackRequestParse.error.errors);
-            throw new Error(callbackRequestParse.error.toString());
-        }
-
-        // TODO: decouple and use HTTP REST API
-        try{
-            const callbackTxHash = await this.oracleCallbackService.doCallback(callbackRequestParse.data);
-            task.callbackRecipient = callbackTxHash;
-            task.status = TaskStatus.CALLBACK_STARTED;
-            await this.taskRepository.save(task);
-        } catch (e) {
-            this.logger.error(`task ${taskId} failed to do callback`);
-            task.failed = true;
-            await this.taskRepository.save(task);
-        }
-    }
-
 }
