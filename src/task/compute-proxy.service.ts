@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ethers, HDNodeWallet, JsonRpcProvider, TransactionReceipt, TransactionResponse, Wallet } from "ethers";
+import { ethers, HDNodeWallet, JsonRpcProvider, TransactionResponse, Wallet } from "ethers";
 import { computeProxyAbi } from './compute-proxy.abi';
 import { TaskEntity } from 'src/entities/task.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,6 +10,7 @@ import { stringifyBigInt } from 'src/utils/utils';
 import { OracleCallbackRequestSchema } from 'src/schemas/oracle-callback.schema';
 import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
 import { OracleCallbackService } from 'src/gateway/oracle-callback.service';
+import { GetContractEventsReturnType, GetLogsReturnType, Log } from 'viem';
 
 @Injectable()
 export class ComputeProxyService {
@@ -57,43 +58,6 @@ export class ComputeProxyService {
                         gasLimit: 10000000n,
                     });
                     this.logger.log(`Compute transaction ${transactionResponse.hash} handing`);
-                    transactionResponse.wait(1).then(async(receipt)=>{
-                        if (receipt.status === 0) { // 0 indicates transaction failure
-                            this.logger.error(`Compute transaction ${transactionResponse.hash} reverted`);
-                            throw new Error(`Transaction reverted`);
-                        }
-                        const eventLogs = receipt.logs;
-                        if (eventLogs.length === 0) {
-                            this.logger.error("eventLogs length is 0");
-                            throw new Error('No RequestResolved event found in transaction logs');
-                        }
-
-                        const event = this.contract.interface.parseLog(eventLogs[0]);
-
-                        if (event.args.oracleInstanceId !== oracleInstanceId) {
-                            this.logger.error('Unexpected oracle id');
-                            throw new Error('Unexpected oracle id');
-                        }
-
-                        if (event.name !== 'RequestResolved') {
-                            this.logger.error('Unexpected event type');
-                            throw new Error('Unexpected event type');
-                        }
-                        const task = await this.taskRepository.findOne({
-                            where: { requestId: reqId },
-                            relations: ['request', 'request.ops'],
-                        });;
-                        task.responseResults = JSON.stringify(event.args, stringifyBigInt);
-                        task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
-                        await this.taskRepository.save(task);
-                        this.logger.log('Task computation response captured');
-                        this.logger.log('Doing callback ' + task.id);
-                        await this.doCallback(task.id);
-                    }).catch(async(error)=>{
-                        this.logger.error(`${error}`);
-                    }).finally(()=>{
-                        this.logger.log(`${transactionResponse.hash}'s receipt is done.`);
-                    });
                 } catch (e) {
                     this.logger.error(e);
                     throw e;
@@ -180,5 +144,24 @@ export class ComputeProxyService {
             task.failed = true;
             await this.taskRepository.save(task);
         }
+    }
+
+    async doSaveResponseResults(log: { transactionHash: string, topics: string[], data: string}) {
+            const event = this.contract.interface.parseLog({topics: log.topics, data: log.data});
+
+            if (event.name !== 'RequestResolved') {
+                this.logger.error('Unexpected event type');
+                throw new Error('Unexpected event type');
+            }
+            const task = await this.taskRepository.findOne({
+                where: { executeResponseHash: log.transactionHash },
+                relations: ['request', 'request.ops'],
+            });;
+            task.responseResults = JSON.stringify(event.args, stringifyBigInt);
+            task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
+            await this.taskRepository.save(task);
+            this.logger.log('Task computation response captured');
+            this.logger.log('Doing callback ' + task.id);
+            await this.doCallback(task.id);
     }
 }

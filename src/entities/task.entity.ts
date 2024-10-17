@@ -22,6 +22,9 @@ export class TaskEntity {
     @Column()
     oracleInstanceId: string;
 
+    @Column()
+    computeProxyInstanceId: string;
+
     @Column({ default: 'pending' })
     status: string;
 

@@ -13,6 +13,7 @@ import { OracleCallbackService } from "../gateway/oracle-callback.service";
 import { stringifyBigInt } from "../utils/utils";
 import { ConfigService } from '@nestjs/config';
 import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
+import { ComputeProxyInstanceService } from './compute-proxy-instance.service';
 
 
 @Injectable()
@@ -25,7 +26,8 @@ export class TaskService {
         @InjectRepository(OperationEntity) private operationRepository: Repository<OperationEntity>,
         private readonly configService: ConfigService,
         private readonly computeProxyService: ComputeProxyService,
-        private readonly oracleInstanceService: OracleInstanceService
+        private readonly oracleInstanceService: OracleInstanceService,
+        private readonly computeProxyInstanceService: ComputeProxyInstanceService
     ) {
 
     }
@@ -75,6 +77,7 @@ export class TaskService {
         task.transactionHash = log.transactionHash;
         task.blockHash = log.blockHash;
         task.oracleInstanceId = this.oracleInstanceService.getOracleInstanceEntity().id;
+        task.computeProxyInstanceId = this.computeProxyInstanceService.getComputeProxyInstanceEntity().id;
         task.callbackAddr = request.callbackAddr;
         task.callbackFunc = request.callbackFunc;
         task.payload = request.payload;
