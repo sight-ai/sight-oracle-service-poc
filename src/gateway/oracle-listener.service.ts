@@ -34,9 +34,16 @@ export class OracleListenerService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('onModuleInit called...');
 
         // Get the current block height
-        this.logger.log('fetching lastBlockHeight as ' + await this.oracleInstanceService.getOracleInstanceHeight())
+        this.logger.log('fetching lastBlockHeight as ' + await this.oracleInstanceService.getOracleInstanceHeight());
+        const disable_services = (process.env.DISABLE_SERVICES||"").split(",");
         try {
-            this.startFetchingLogs();
+            if (disable_services.includes("compute-proxy-listener")) {
+                while(true) {
+                    await new Promise(resolve=>setTimeout(resolve, 5000));
+                }
+            } else {
+                this.startFetchingLogs();
+            }
         } catch (error) {
             this.logger.error('Failed to get initial block number:', error);
         }
