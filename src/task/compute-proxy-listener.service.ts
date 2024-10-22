@@ -3,12 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TaskEntity } from 'src/entities/task.entity';
 import { Repository } from 'typeorm';
-import { TaskService } from './task.service';
 import { ComputeProxyService } from './compute-proxy.service';
 import { ComputeProxyInstanceService } from './compute-proxy-instance.service';
 import { computeProxyChain } from './compute-proxy.chain';
 import { createPublicClient, http, Log } from 'viem';
 import { computeProxyAbi } from './compute-proxy.abi';
+import { stringifyBigInt } from 'src/utils/utils';
 
 // Setup viem client with custom chain
 const client = createPublicClient({
@@ -83,7 +83,7 @@ export class ComputeProxyListenerService implements OnModuleInit, OnModuleDestro
                 } else {
                     for (const log of logs) {
                         this.logger.log('RequestrResolved Event received:', log.transactionHash);
-                        console.log(log);
+                        this.logger.debug(JSON.stringify(log, stringifyBigInt));
                         this.computeProxyService.doSaveResponseResults(log);
                     }
                 }

@@ -2,10 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ethers,
+  Wallet,
+  Mnemonic,
   HDNodeWallet,
   JsonRpcProvider,
   TransactionResponse,
-  Wallet,
 } from 'ethers';
 import { computeProxyAbi } from './compute-proxy.abi';
 import { TaskEntity } from 'src/entities/task.entity';
@@ -23,6 +24,8 @@ export class ComputeProxyService {
   private contractAddress: string;
   private provider: JsonRpcProvider;
   private wallet: HDNodeWallet;
+  private wallets: HDNodeWallet[];
+  private wallets_idx: number = 0;
   private contract: ethers.Contract;
 
   constructor(
@@ -52,6 +55,20 @@ export class ComputeProxyService {
       computeProxyAbi,
       this.wallet,
     );
+    this.logger.debug(`wallet default: ${this.wallet.address}`);
+
+    const mnemonic_count = this.configService.get<number>(
+      'COMPUTE_PROXY_CHAIN_MNEMONIC_COUNT',
+    )||1;
+
+    this.wallets = Array.from(Array(mnemonic_count).keys()).map((v,i)=>{
+      const wallet = HDNodeWallet.fromMnemonic(
+        Mnemonic.fromPhrase(mnemonic), 
+        "m/44'/60'/0'/0"
+      ).deriveChild(i).connect(this.provider);
+      this.logger.debug(`wallet derive child-${v}: ${wallet.address}`);
+      return wallet;
+    });
   }
 
   async executeRequest(
@@ -76,7 +93,7 @@ export class ComputeProxyService {
         let transactionResponse: TransactionResponse;
 
         try {
-          transactionResponse = await this.contract.executeRequest(
+          transactionResponse = await (this.contract.connect(this.wallets[this.wallets_idx++%this.wallets.length]) as ethers.Contract).executeRequest(
             oracleInstanceId,
             reqId,
             input,
@@ -88,7 +105,7 @@ export class ComputeProxyService {
             `Compute transaction ${transactionResponse.hash} handing`,
           );
         } catch (e) {
-          this.logger.error(e);
+          // this.logger.error(e);
           throw e;
         }
 
