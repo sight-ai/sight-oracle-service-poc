@@ -57,11 +57,11 @@ export class ComputeProxyService {
     );
     this.logger.debug(`wallet default: ${this.wallet.address}`);
 
-    const mnemonic_count = this.configService.get<number>(
+    const mnemonic_count = parseInt(this.configService.get<string>(
       'COMPUTE_PROXY_CHAIN_MNEMONIC_COUNT',
-    )||1;
+    ))||1;
 
-    this.wallets = Array.from(Array(mnemonic_count).keys()).map((v,i)=>{
+    this.wallets = Array.from(Array(Number(mnemonic_count)).keys()).map((v,i)=>{
       const wallet = HDNodeWallet.fromMnemonic(
         Mnemonic.fromPhrase(mnemonic), 
         "m/44'/60'/0'/0"
@@ -76,7 +76,7 @@ export class ComputeProxyService {
     reqId: string,
     input: any,
   ): Promise<any> {
-    const maxRetries = 50;
+    const maxRetries = +this.configService.get<string>("COMPUTE_PROXY_CHAIN_MAX_RETRIES") || 50;
     const retryDelay = 5000; // 5 seconds
     let attempt = 0;
     let lastError: Error | null = null;
@@ -105,7 +105,7 @@ export class ComputeProxyService {
             `Compute transaction ${transactionResponse.hash} handing`,
           );
         } catch (e) {
-          // this.logger.error(e);
+          this.logger.error(`wallet-${this.wallets[(this.wallets_idx-1)%this.wallets.length].address} failed at req-${reqId}`);
           throw e;
         }
 

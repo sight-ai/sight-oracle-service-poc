@@ -38,7 +38,7 @@ export class OracleCallbackService {
   }
 
   async doCallback(callbackRequest: OracleCallbackRequest): Promise<string> {
-    const maxRetries = 50;
+    const maxRetries = +this.configService.get<string>("ORACLE_CHAIN_MAX_RETRIES") || 50;
     const retryDelay = 5000; // 5 seconds
     let attempt = 0;
     let lastError: Error | null = null;
