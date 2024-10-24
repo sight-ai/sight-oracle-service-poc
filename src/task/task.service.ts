@@ -4,21 +4,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TaskEntity } from '../entities/task.entity';
 import { RequestEntity } from '../entities/request.entity';
+import { TaskStatus } from "../schemas/task.schema";
 import { RequestSchema, Request } from '../schemas/request.schema';
-import {OperationEntity} from "../entities/operation.entity";
-import {ComputeProxyService} from "./compute-proxy.service";
-import {OracleCallbackRequestSchema} from "../schemas/oracle-callback.schema";
-import {OracleCallbackService} from "../gateway/oracle-callback.service";
-import {stringifyBigInt} from "../utils/utils";
+import { OperationEntity } from "../entities/operation.entity";
+import { ComputeProxyService } from "./compute-proxy.service";
+import { OracleCallbackRequestSchema } from "../schemas/oracle-callback.schema";
+import { OracleCallbackService } from "../gateway/oracle-callback.service";
+import { stringifyBigInt } from "../utils/utils";
+import { ConfigService } from '@nestjs/config';
+import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
+import { ComputeProxyInstanceService } from './compute-proxy-instance.service';
 
-
-const TaskStatus = {
-    CREATED: 'created',
-    COMPUTE_EXECUTED: 'compute-executed', // successfully execute the computation
-    COMPUTE_RESPONSE_CAPTURED: 'compute-response-captured', // successfully execute the computation
-    CALLBACK_STARTED: 'callback-started',
-    CALLBACK_COMPLETE: 'callback-complete'
-}
 
 @Injectable()
 export class TaskService {
@@ -28,14 +24,19 @@ export class TaskService {
         @InjectRepository(TaskEntity) private taskRepository: Repository<TaskEntity>,
         @InjectRepository(RequestEntity) private requestRepository: Repository<RequestEntity>,
         @InjectRepository(OperationEntity) private operationRepository: Repository<OperationEntity>,
+        private readonly configService: ConfigService,
         private readonly computeProxyService: ComputeProxyService,
-        private readonly oracleCallbackService: OracleCallbackService
-    ) {}
+        private readonly oracleInstanceService: OracleInstanceService,
+        private readonly computeProxyInstanceService: ComputeProxyInstanceService
+    ) {
 
-    async createTask(log: any, chainId: number): Promise<TaskEntity> {
+    }
+
+    async createTask(log: any): Promise<TaskEntity> {
         this.logger.log(`create new Task`);
         // Validate and transform the log data using Zod
-        const requestResult = RequestSchema.safeParse(log.args[0]);
+        const reqId = log.args.reqId;
+        const requestResult = RequestSchema.safeParse(log.args.req);
         if (!requestResult.success) {
             this.logger.error('Invalid request log data:', requestResult.error.errors);
             throw new Error('Invalid request log data');
@@ -44,7 +45,7 @@ export class TaskService {
         const validatedRequest: Request = requestResult.data;
 
         // Check if request already exists
-        const existRequest = await this.requestRepository.findOneBy({id: validatedRequest.id});
+        const existRequest = await this.requestRepository.findOneBy({id: reqId});
         if(existRequest) {
             this.logger.log('Same request already exists, skip.')
             return null;
@@ -60,13 +61,13 @@ export class TaskService {
         });
 
         const request = new RequestEntity();
-        request.id = validatedRequest.id;
+        request.id = reqId;
         request.requester = validatedRequest.requester;
         request.ops = operations;
         request.opsCursor = Number(validatedRequest.opsCursor); // Transform BigInt to number
         request.callbackAddr = validatedRequest.callbackAddr;
         request.callbackFunc = validatedRequest.callbackFunc;
-        request.extraData = validatedRequest.extraData;
+        request.payload = validatedRequest.payload;
 
         await this.requestRepository.save(request);
 
@@ -75,16 +76,17 @@ export class TaskService {
         task.requester = request.requester;
         task.transactionHash = log.transactionHash;
         task.blockHash = log.blockHash;
-        task.chainId = chainId;
+        task.oracleInstanceId = this.oracleInstanceService.getOracleInstanceEntity().id;
+        task.computeProxyInstanceId = this.computeProxyInstanceService.getComputeProxyInstanceEntity().id;
         task.callbackAddr = request.callbackAddr;
         task.callbackFunc = request.callbackFunc;
-        task.extraData = request.extraData;
+        task.payload = request.payload;
         task.request = request;
         task.status = TaskStatus.CREATED;
 
         this.logger.log('Creating task for requestID: ' + task.requestId);
-        this.logger.log(JSON.stringify(task));
         const savedTask = await this.taskRepository.save(task);
+        this.logger.debug(JSON.stringify(savedTask));
 
         // TODO: Decouple this logic by scan task
         await this.executeTask(savedTask.id);
@@ -94,10 +96,10 @@ export class TaskService {
 
     async executeTask(taskId: string): Promise<void> {
         this.logger.log('Executing task ' + taskId);
-        this.logger.log('Doing computation ' + taskId);
         await this.doComputation(taskId);
-        this.logger.log('Doing callback ' + taskId);
-        await this.doCallback(taskId);
+        this.logger.log('Waitting computation receipt ' + taskId);
+        // this.logger.log('Doing callback ' + taskId);
+        // await this.doCallback(taskId);
     }
 
     async doComputation(taskId: string): Promise<void> {
@@ -112,7 +114,6 @@ export class TaskService {
 
         // Transform task data into the format expected by the ComputeProxy contract
         const request = {
-            id: task.requestId,
             requester: task.requester,
             ops: task.request.ops.sort(function(a,b){return a.index - b.index}).map(op => ({
                 opcode: op.opcode,
@@ -122,20 +123,17 @@ export class TaskService {
             opsCursor: task.request.opsCursor,
             callbackAddr: task.callbackAddr,
             callbackFunc: task.callbackFunc,
-            extraData: task.extraData,
+            payload: task.payload,
         };
 
         try {
-            const response = await this.computeProxyService.executeRequest(request);
+            const response = await this.computeProxyService.executeRequest(this.oracleInstanceService.getOracleInstanceEntity().id, task.requestId, request);
             // TODO: Add recipient for computation tx hash
             this.logger.log(`Task ${taskId} computation executed successfully with response:`);
-            this.logger.log(response);
-            task.status = TaskStatus.COMPUTE_EXECUTED;
+            this.logger.debug(JSON.stringify(response, stringifyBigInt));
+            task.status = TaskStatus.COMPUTE_EXECUTING;
+            task.executeResponseHash = response.hash;
             await this.taskRepository.save(task);
-            task.responseResults = JSON.stringify(response, stringifyBigInt);
-            task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
-            await this.taskRepository.save(task);
-            this.logger.log('Task computation response captured');
         } catch (error) {
             // TODO: retry
             this.logger.error(`Error executing task ${taskId}: ${error.message}`);
@@ -143,69 +141,4 @@ export class TaskService {
             await this.taskRepository.save(task);
         }
     }
-
-
-    async doCallback(taskId: string): Promise<void> {
-        const task = await this.taskRepository.findOne({
-            where: { id: taskId },
-            relations: ['request', 'request.ops'],
-        });
-        if (!task) {
-            this.logger.error(`Task with ID ${taskId} not found`);
-            throw new Error(`Task with ID ${taskId} not found`);
-        }
-
-        if(task.failed) {
-            this.logger.error(`Task failed in previous step, skip`);
-            return;
-        }
-
-        if(task.status !== TaskStatus.COMPUTE_RESPONSE_CAPTURED) {
-            this.logger.error('No response captured');
-            throw new Error(`Task with ID ${taskId} no response captured`);
-        }
-
-        task.status = TaskStatus.CALLBACK_STARTED;
-        await this.taskRepository.save(task);
-
-        this.logger.log('Callback following result:');
-        this.logger.log(task.responseResults);
-
-        const computationResults = JSON.parse(task.responseResults);
-
-        const rawCapsulatedValues = computationResults[1];
-
-        const transformedCapsulatedValues = rawCapsulatedValues.map(element => {
-            return {
-                data: BigInt(element[0]),
-                valueType: BigInt(element[1])
-            }
-        });
-
-        const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
-            chainId: task.chainId,
-            requestId: task.requestId,
-            callbackAddr: task.callbackAddr,
-            callbackFunc: task.callbackFunc,
-            responseResults: transformedCapsulatedValues,
-        });
-
-        if(!callbackRequestParse.success) {
-            this.logger.error('Invalid callbackRequest data:', callbackRequestParse.error.errors);
-            throw new Error(callbackRequestParse.error.toString());
-        }
-
-        // TODO: decouple and use HTTP REST API
-        try{
-            const callbackTxHash = await this.oracleCallbackService.doCallback(callbackRequestParse.data);
-            task.callbackRecipient = callbackTxHash;
-            task.status = TaskStatus.CALLBACK_STARTED;
-            await this.taskRepository.save(task);
-        } catch (e) {
-            this.logger.error(`task ${taskId} failed to do callback`);
-            task.failed = true;
-            await this.taskRepository.save(task);
-        }
-    }
-
 }

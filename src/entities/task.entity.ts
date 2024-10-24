@@ -18,8 +18,12 @@ export class TaskEntity {
     @Column()
     blockHash: string;
 
+    // @ManyToOne(() => OracleInstanceEntity, (request) => request.tasks)
     @Column()
-    chainId: number;
+    oracleInstanceId: string;
+
+    @Column()
+    computeProxyInstanceId: string;
 
     @Column({ default: 'pending' })
     status: string;
@@ -34,13 +38,16 @@ export class TaskEntity {
     callbackFunc: string;
 
     @Column('text')
-    extraData: string;
+    payload: string;
 
     @ManyToOne(() => RequestEntity, (request) => request.tasks)
     request: RequestEntity;
 
     @Column('text', { nullable: true }) // JSON Wrapped
     responseResults: string;
+
+    @Column({ nullable: true })
+    executeResponseHash: string;
 
     @Column('text', {nullable: true})
     callbackRecipient: string;

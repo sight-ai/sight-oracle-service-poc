@@ -23,7 +23,7 @@ export class RequestEntity {
     callbackFunc: string;
 
     @Column('text')
-    extraData: string;
+    payload: string;
 
     @OneToMany(() => TaskEntity, (task) => task.request)
     tasks: TaskEntity[];
