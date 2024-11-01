@@ -29,7 +29,7 @@ $ npm run start:prod
 
 1. (Optional) Specify environment variable ORG_NAME and VERSION 
 ORG_NAME=sight-ai
-VERSION=0.0.1
+VERSION=0.0.3-SNAPSHOT
 
 2. Build local docker image
 ```

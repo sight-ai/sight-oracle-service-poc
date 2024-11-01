@@ -13,3 +13,4 @@ deployments
 db
 *.env.*.bak
 *.env
+.env
