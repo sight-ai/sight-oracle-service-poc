@@ -1,33 +1,6 @@
 export const computeProxyAbi = [
   {
     inputs: [],
-    name: 'ECDSAInvalidSignature',
-    type: 'error',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'length',
-        type: 'uint256',
-      },
-    ],
-    name: 'ECDSAInvalidSignatureLength',
-    type: 'error',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 's',
-        type: 'bytes32',
-      },
-    ],
-    name: 'ECDSAInvalidSignatureS',
-    type: 'error',
-  },
-  {
-    inputs: [],
     name: 'InvalidInitialization',
     type: 'error',
   },
@@ -63,8 +36,20 @@ export const computeProxyAbi = [
     inputs: [
       {
         indexed: true,
-        internalType: 'uint256',
+        internalType: 'bytes32',
+        name: 'oracleInstanceId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'bytes32',
         name: 'reqId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'uint256',
+        name: 'reqIdAsync',
         type: 'uint256',
       },
       {
@@ -187,6 +172,55 @@ export const computeProxyAbi = [
         type: 'bytes32',
       },
       {
+        indexed: true,
+        internalType: 'uint256',
+        name: 'reqIdAsync',
+        type: 'uint256',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'data',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
+        ],
+        indexed: false,
+        internalType: 'struct CapsulatedValue[]',
+        name: 'results',
+        type: 'tuple[]',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'asyncOpCursor',
+        type: 'uint256',
+      },
+    ],
+    name: 'RequestAsyncResolved',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'oracleInstanceId',
+        type: 'bytes32',
+      },
+      {
+        indexed: true,
+        internalType: 'bytes32',
+        name: 'reqId',
+        type: 'bytes32',
+      },
+      {
         components: [
           {
             internalType: 'uint256',
@@ -256,7 +290,7 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'uint256',
-        name: 'reqId',
+        name: 'reqIdAsync',
         type: 'uint256',
       },
       {
@@ -274,7 +308,7 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'uint256',
-        name: 'reqId',
+        name: 'reqIdAsync',
         type: 'uint256',
       },
       {
@@ -292,7 +326,7 @@ export const computeProxyAbi = [
     inputs: [
       {
         internalType: 'uint256',
-        name: 'reqId',
+        name: 'reqIdAsync',
         type: 'uint256',
       },
       {
@@ -488,9 +522,11 @@ export const computeProxyAbi = [
         name: 'r',
         type: 'tuple',
       },
-    ],
-    name: 'executeRequest',
-    outputs: [
+      {
+        internalType: 'uint8',
+        name: 'nextOpCursor',
+        type: 'uint8',
+      },
       {
         components: [
           {
@@ -506,6 +542,31 @@ export const computeProxyAbi = [
         ],
         internalType: 'struct CapsulatedValue[]',
         name: 'results',
+        type: 'tuple[]',
+      },
+    ],
+    name: 'executeRequest',
+    outputs: [
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+      {
+        components: [
+          {
+            internalType: 'uint256',
+            name: 'data',
+            type: 'uint256',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
+        ],
+        internalType: 'struct CapsulatedValue[]',
+        name: '',
         type: 'tuple[]',
       },
     ],
