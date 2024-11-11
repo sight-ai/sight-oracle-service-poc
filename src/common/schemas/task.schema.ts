@@ -1,6 +1,6 @@
 // schemas/task.schema.ts
 import { z } from 'zod';
-import { Bytes32, Address, Bytes4 } from './request.schema';
+import { Bytes32 } from './request.schema';
 
 const TaskStatus = {
   CREATED: 'created',

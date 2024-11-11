@@ -25,7 +25,6 @@ import {
   ResponseEntity,
 } from 'src/common/entities/response.entity';
 import { TaskService } from './task.service';
-import { hexToNumber } from 'viem';
 
 @Injectable()
 export class ComputeProxyService implements OnModuleInit {

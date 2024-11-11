@@ -148,7 +148,7 @@ export class TaskService {
     const body = task.request.body;
     // Transform task data into the format expected by the ComputeProxy contract
     let request: any;
-    let others: any = [0, []];
+    const others: any = [0, []];
     switch (task.requestType) {
       case RequestType.GeneralRequestType:
       case RequestType.GeneralRequestTypeWithAsyncOps:

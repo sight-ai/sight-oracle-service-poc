@@ -146,7 +146,7 @@ export class OracleCallbackService implements OnModuleInit {
         }
 
         let tx: TransactionResponse;
-        let contract = this.contract.connect(
+        const contract = this.contract.connect(
           this.wallets[this.wallets_idx++ % this.wallets.length],
         ) as ethers.Contract;
         switch (requestType) {
