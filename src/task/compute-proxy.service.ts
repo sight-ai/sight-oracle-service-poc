@@ -1,4 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ethers,
@@ -8,18 +14,20 @@ import {
   JsonRpcProvider,
   TransactionResponse,
 } from 'ethers';
-import { computeProxyAbi } from './compute-proxy.abi';
-import { TaskEntity } from 'src/entities/task.entity';
+import { computeProxyAbi } from '../common/compute-proxy.abi';
+import { RequestType, TaskEntity } from 'src/common/entities/task.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TaskStatus } from 'src/schemas/task.schema';
-import { stringifyBigInt } from 'src/utils/utils';
-import { OracleCallbackRequestSchema } from 'src/schemas/oracle-callback.schema';
-import { OracleInstanceService } from 'src/gateway/oracle-instance.service';
-import { OracleCallbackService } from 'src/gateway/oracle-callback.service';
+import { TaskStatus } from '../common/schemas/task.schema';
+import { bigintToJSON } from '../common/utils';
+import {
+  AsyncResponseEntity,
+  ResponseEntity,
+} from 'src/common/entities/response.entity';
+import { TaskService } from './task.service';
 
 @Injectable()
-export class ComputeProxyService {
+export class ComputeProxyService implements OnModuleInit {
   private readonly logger = new Logger(ComputeProxyService.name);
   private contractAddress: string;
   private provider: JsonRpcProvider;
@@ -32,8 +40,12 @@ export class ComputeProxyService {
     private readonly configService: ConfigService,
     @InjectRepository(TaskEntity)
     private taskRepository: Repository<TaskEntity>,
-    private readonly oracleInstanceService: OracleInstanceService,
-    private readonly oracleCallbackService: OracleCallbackService,
+    @InjectRepository(ResponseEntity)
+    private responseRepository: Repository<ResponseEntity>,
+    @InjectRepository(AsyncResponseEntity)
+    private asyncResponseRepository: Repository<AsyncResponseEntity>,
+    @Inject(forwardRef(() => TaskService))
+    private readonly taskService: TaskService,
   ) {
     this.contractAddress = this.configService.get<string>(
       'COMPUTE_PROXY_CONTRACT_ADDRESS',
@@ -57,26 +69,81 @@ export class ComputeProxyService {
     );
     this.logger.debug(`wallet default: ${this.wallet.address}`);
 
-    const mnemonic_count = parseInt(this.configService.get<string>(
-      'COMPUTE_PROXY_CHAIN_MNEMONIC_COUNT',
-    ))||1;
+    const mnemonic_count =
+      parseInt(
+        this.configService.get<string>('COMPUTE_PROXY_CHAIN_MNEMONIC_COUNT'),
+      ) || 1;
 
-    this.wallets = Array.from(Array(Number(mnemonic_count)).keys()).map((v,i)=>{
-      const wallet = HDNodeWallet.fromMnemonic(
-        Mnemonic.fromPhrase(mnemonic), 
-        "m/44'/60'/0'/0"
-      ).deriveChild(i).connect(this.provider);
-      this.logger.debug(`wallet derive child-${v}: ${wallet.address}`);
-      return wallet;
-    });
+    this.wallets = Array.from(Array(Number(mnemonic_count)).keys()).map(
+      (v, i) => {
+        const wallet = HDNodeWallet.fromMnemonic(
+          Mnemonic.fromPhrase(mnemonic),
+          "m/44'/60'/0'/0",
+        )
+          .deriveChild(i)
+          .connect(this.provider);
+        this.logger.debug(`wallet derive child-${v}: ${wallet.address}`);
+        return wallet;
+      },
+    );
+  }
+
+  async onModuleInit() {
+    this.logger.log(`initializing compute proxy service...`);
+    this.handleCallback();
+  }
+
+  async handleCallback() {
+    while (true) {
+      const tasks = await this.taskRepository.find({
+        select: {
+          id: true,
+          blockNumber: true,
+          transactionIndex: true,
+          logIndex: true,
+          status: true,
+        },
+        where: [
+          {
+            status: TaskStatus.CREATED,
+            failed: false,
+          },
+          {
+            status: TaskStatus.COMPUTE_EXECUTING_ASYNC,
+            failed: false,
+            asynced: true,
+          },
+        ],
+        relations: {
+          request: false,
+          response: false,
+        },
+        take: this.wallets.length,
+        skip: 0,
+        order: {
+          blockNumber: 'ASC',
+          transactionIndex: 'ASC',
+          logIndex: 'ASC',
+        },
+      });
+      await Promise.all(
+        tasks.map(async (task) => {
+          await this.taskService.executeTask(task.id);
+        }),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
   }
 
   async executeRequest(
     oracleInstanceId: string,
     reqId: string,
+    requestType: RequestType,
     input: any,
+    others: any = null,
   ): Promise<any> {
-    const maxRetries = +this.configService.get<string>("COMPUTE_PROXY_CHAIN_MAX_RETRIES") || 50;
+    const maxRetries =
+      +this.configService.get<string>('COMPUTE_PROXY_CHAIN_MAX_RETRIES') || 50;
     const retryDelay = 5000; // 5 seconds
     let attempt = 0;
     let lastError: Error | null = null;
@@ -86,31 +153,63 @@ export class ComputeProxyService {
         attempt++;
         this.logger.log('Doing computation with the following args:');
         this.logger.debug(input);
+        this.logger.debug(JSON.stringify(input, bigintToJSON));
         this.logger.debug(
           'Compute Proxy Contract Address:' + this.contractAddress,
         );
 
-        let transactionResponse: TransactionResponse;
+        let transactionResponse: TransactionResponse | any;
 
         try {
-          transactionResponse = await (this.contract.connect(this.wallets[this.wallets_idx++%this.wallets.length]) as ethers.Contract).executeRequest(
-            oracleInstanceId,
-            reqId,
-            input,
-            {
-              gasLimit: 10000000n,
-            },
-          );
+          switch (requestType) {
+            case RequestType.GeneralRequestType:
+            case RequestType.GeneralRequestTypeWithAsyncOps:
+              transactionResponse = await (
+                this.contract.connect(
+                  this.wallets[this.wallets_idx++ % this.wallets.length],
+                ) as ethers.Contract
+              ).executeRequest(
+                oracleInstanceId,
+                reqId,
+                input,
+                others[0],
+                others[1],
+                {
+                  gasLimit: 10000000n,
+                },
+              );
+              break;
+            case RequestType.SaveCiphertextRequestType:
+              transactionResponse = await (
+                this.contract.connect(
+                  this.wallets[this.wallets_idx++ % this.wallets.length],
+                ) as ethers.Contract
+              ).executeSaveCiphertextRequest(oracleInstanceId, reqId, input, {
+                gasLimit: 10000000n,
+              });
+              break;
+            case RequestType.ReencryptRequestType:
+              transactionResponse = await (
+                this.contract.connect(
+                  this.wallets[this.wallets_idx++ % this.wallets.length],
+                ) as ethers.Contract
+              ).executeReencryptRequest(oracleInstanceId, reqId, input, {
+                gasLimit: 10000000n,
+              });
+              break;
+          }
           this.logger.log(
-            `Compute transaction ${transactionResponse.hash} handing`,
+            `Compute transaction ${transactionResponse.hash || transactionResponse} handing`,
           );
         } catch (e) {
-          this.logger.error(`wallet-${this.wallets[(this.wallets_idx-1)%this.wallets.length].address} failed at req-${reqId}`);
+          this.logger.error(
+            `wallet-${this.wallets[(this.wallets_idx - 1) % this.wallets.length].address} failed at req-${reqId}`,
+          );
           throw e;
         }
 
         this.logger.log(
-          `Compute Transaction sent: ${transactionResponse.hash}`,
+          `Compute Transaction sent: ${transactionResponse.hash || transactionResponse}`,
         );
         return transactionResponse;
       } catch (error) {
@@ -136,97 +235,99 @@ export class ComputeProxyService {
     throw lastError || new Error('Unexpected error in executeRequest');
   }
 
-  async doCallback(taskId: string): Promise<void> {
-    const task = await this.taskRepository.findOne({
-      where: { id: taskId },
-      relations: ['request', 'request.ops'],
-    });
-    if (!task) {
-      this.logger.error(`Task with ID ${taskId} not found`);
-      throw new Error(`Task with ID ${taskId} not found`);
-    }
-
-    if (task.failed) {
-      this.logger.error(`Task failed in previous step, skip`);
-      return;
-    }
-
-    if (task.status !== TaskStatus.COMPUTE_RESPONSE_CAPTURED) {
-      this.logger.error('No response captured');
-      throw new Error(`Task with ID ${taskId} no response captured`);
-    }
-
-    task.status = TaskStatus.CALLBACK_STARTED;
-    await this.taskRepository.save(task);
-
-    this.logger.log('Callback following result:');
-    this.logger.log(task.responseResults);
-
-    const computationResults = JSON.parse(task.responseResults);
-
-    const rawCapsulatedValues = computationResults[2];
-
-    const transformedCapsulatedValues = rawCapsulatedValues.map((element) => {
-      return {
-        data: BigInt(element[0]),
-        valueType: BigInt(element[1]),
-      };
-    });
-
-    const callbackRequestParse = OracleCallbackRequestSchema.safeParse({
-      chainId: this.oracleInstanceService.getOracleInstanceEntity().chainId,
-      requestId: task.requestId,
-      callbackAddr: task.callbackAddr,
-      callbackFunc: task.callbackFunc,
-      responseResults: transformedCapsulatedValues,
-    });
-
-    if (!callbackRequestParse.success) {
-      this.logger.error(
-        'Invalid callbackRequest data:',
-        callbackRequestParse.error.errors,
-      );
-      throw new Error(callbackRequestParse.error.toString());
-    }
-
-    // TODO: decouple and use HTTP REST API
-    try {
-      const callbackTxHash = await this.oracleCallbackService.doCallback(
-        callbackRequestParse.data,
-      );
-      task.callbackRecipient = callbackTxHash;
-      task.status = TaskStatus.CALLBACK_COMPLETE;
-      await this.taskRepository.save(task);
-    } catch (e) {
-      this.logger.error(`task ${taskId} failed to do callback`);
-      task.failed = true;
-      await this.taskRepository.save(task);
-    }
-  }
-
-  async doSaveResponseResults(log: {
-    transactionHash: string;
-    topics: string[];
-    data: string;
-  }) {
+  async doSaveResponseResults(
+    log: {
+      transactionHash: string;
+      topics: string[];
+      data: string;
+      eventName: string;
+      args: any;
+    },
+    requestType: RequestType,
+  ) {
     const event = this.contract.interface.parseLog({
       topics: log.topics,
       data: log.data,
     });
 
-    if (event.name !== 'RequestResolved') {
-      this.logger.error('Unexpected event type');
+    if (
+      ![
+        'RequestResolved',
+        'ReencryptRequestResolved',
+        'SaveCiphertextResolved',
+        'RequestAsyncResolved',
+        'DecryptAsyncResolved',
+      ].includes(event.name)
+    ) {
+      this.logger.error(
+        `Unexpected event type ${event.name} when deal with ${RequestType[requestType]}`,
+      );
       throw new Error('Unexpected event type');
+    } else {
+      this.logger.debug(JSON.stringify(event, bigintToJSON));
     }
-    const task = await this.taskRepository.findOne({
-      where: { executeResponseHash: log.transactionHash },
-      relations: ['request', 'request.ops'],
-    });
-    task.responseResults = JSON.stringify(event.args, stringifyBigInt);
-    task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
-    await this.taskRepository.save(task);
-    this.logger.log('Task computation response captured');
-    this.logger.log('Doing callback ' + task.id);
-    await this.doCallback(task.id);
+    if (
+      requestType !== RequestType.GeneralRequestTypeWithAsyncOps ||
+      log.eventName === 'RequestResolved'
+    ) {
+      const task = await this.taskRepository.findOne({
+        where: { executeTxHash: log.transactionHash },
+        relations: ['request'],
+      });
+      const response = new ResponseEntity();
+      response.reqId = task.request.id;
+      response.body = event.args;
+
+      await this.responseRepository.save(response);
+      task.response = response;
+      task.status = TaskStatus.COMPUTE_RESPONSE_CAPTURED;
+      await this.taskRepository.save(task);
+      this.logger.log('Task computation response captured');
+    } else {
+      const task = await this.taskRepository.findOne({
+        where: {
+          request: {
+            id: log.args.reqId,
+          },
+        },
+        relations: ['request', 'asyncResponses'],
+      });
+      switch (event.name) {
+        case 'RequestAsyncResolved':
+          const asyncResponse = new AsyncResponseEntity();
+          asyncResponse.reqIdAsync = Number(log.args.reqIdAsync);
+          asyncResponse.transactionHash = log.transactionHash;
+          asyncResponse.body = log.args;
+
+          await this.asyncResponseRepository.save(asyncResponse);
+          task.asyncResponses.push(asyncResponse);
+          await this.taskRepository.save(task);
+          this.logger.log('Task computation async response captured');
+          break;
+        case 'DecryptAsyncResolved':
+          const previousAsyncResponse =
+            await this.asyncResponseRepository.findOne({
+              where: {
+                reqIdAsync: Number(log.args.reqIdAsync),
+              },
+            });
+          previousAsyncResponse.body.results[
+            Number(previousAsyncResponse.body.asyncOpCursor)
+          ] = log.args.results[0];
+          previousAsyncResponse.transactionHashAsync = log.transactionHash;
+          await this.asyncResponseRepository.save(previousAsyncResponse);
+          this.logger.log('Doing async computation with the following args:');
+          this.logger.debug(
+            JSON.stringify(task.request.body, bigintToJSON),
+            Number(previousAsyncResponse.body.asyncOpCursor) + 1,
+            JSON.stringify(previousAsyncResponse.body.results, bigintToJSON),
+          );
+          task.asynced = true;
+          await this.taskRepository.save(task);
+          break;
+        default:
+          this.logger.warn(`Skip Event: ${log.eventName}`);
+      }
+    }
   }
 }

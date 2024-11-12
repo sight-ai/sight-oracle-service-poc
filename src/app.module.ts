@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppService } from './app.service';
-import {GatewayModule} from "./gateway/gateway.module";
-import {TypeOrmModule} from "@nestjs/typeorm";
+import { GatewayModule } from './gateway/gateway.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { TaskModule } from './task/task.module';
 
 @Module({
@@ -18,11 +18,12 @@ import { TaskModule } from './task/task.module';
       password: process.env.MYSQL_PASSWORD,
       database: process.env.MYSQL_DATABASE,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.ENV !== "production",
-      logging: false
+      synchronize: process.env.ENV !== 'production',
+      logging: false,
     }),
     GatewayModule,
-    TaskModule],
+    TaskModule,
+  ],
   providers: [AppService],
 })
 export class AppModule {}

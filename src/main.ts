@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   let loglevel: LogLevel;
-  switch(process.env.LOGLEVEL || "debug") {
+  switch (process.env.LOGLEVEL || 'debug') {
     case 'log':
       loglevel = 'log';
       break;
@@ -27,12 +27,9 @@ async function bootstrap() {
     default:
       loglevel = 'debug';
   }
-  const app = await NestFactory.create(
-    AppModule,
-    {
-      logger: [loglevel]
-    }
-  );
+  const app = await NestFactory.create(AppModule, {
+    logger: [loglevel],
+  });
   await app.listen(3001);
 }
 bootstrap();
