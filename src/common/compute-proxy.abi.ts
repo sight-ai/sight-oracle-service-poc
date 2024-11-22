@@ -431,6 +431,11 @@ export const computeProxyAbi = [
           },
           {
             internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
             name: 'callbackAddr',
             type: 'address',
           },
@@ -501,6 +506,11 @@ export const computeProxyAbi = [
             internalType: 'uint256',
             name: 'opsCursor',
             type: 'uint256',
+          },
+          {
+            internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
           },
           {
             internalType: 'address',
@@ -601,6 +611,11 @@ export const computeProxyAbi = [
             internalType: 'uint8',
             name: 'ciphertextType',
             type: 'uint8',
+          },
+          {
+            internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
           },
           {
             internalType: 'address',

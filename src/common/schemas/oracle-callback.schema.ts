@@ -8,6 +8,12 @@ const CapsulatedValueSchema = z.object({
 const OracleCallbackRequestSchema = z.object({
   chainId: z.number().int(), // Check to avoid mis-config
   requestId: z.string().length(66, 'Expected a 32-byte hexadecimal string'), // bytes32
+  oracleAddr: z
+    .string()
+    .regex(
+      /^0x[0-9a-fA-F]{40}$/,
+      'Expected a valid Ethereum address starting with 0x',
+    ),
   callbackAddr: z
     .string()
     .regex(

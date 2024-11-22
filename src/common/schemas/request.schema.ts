@@ -18,6 +18,7 @@ const RequestSchema = z.object({
   requester: Address,
   ops: z.array(OperationSchema),
   opsCursor: z.bigint(),
+  oracleAddr: Address,
   callbackAddr: Address,
   callbackFunc: Bytes4,
   payload: z.string(),
@@ -31,6 +32,7 @@ const ReencryptRequestSchema = z.object({
   target: CapsulatedValueSchema,
   publicKey: Bytes32,
   signature: Bytes,
+  oracleAddr: Address,
   callbackAddr: Address,
   callbackFunc: Bytes4,
 });
@@ -42,6 +44,7 @@ const SaveCiphertextRequestSchema = z.object({
   requester: Address,
   ciphertext: Bytes,
   ciphertextType: z.number().int(),
+  oracleAddr: Address,
   callbackAddr: Address,
   callbackFunc: Bytes4,
 });

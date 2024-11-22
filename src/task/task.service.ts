@@ -156,6 +156,7 @@ export class TaskService {
           requester: body.requester,
           ops: body.ops,
           opsCursor: body.opsCursor,
+          oracleAddr: body.oracleAddr,
           callbackAddr: body.callbackAddr,
           callbackFunc: body.callbackFunc,
           payload: body.payload,
@@ -170,6 +171,7 @@ export class TaskService {
           },
           publicKey: body.publicKey,
           signature: body.signature,
+          oracleAddr: body.oracleAddr,
           callbackAddr: body.callbackAddr,
           callbackFunc: body.callbackFunc,
         };
@@ -179,6 +181,7 @@ export class TaskService {
           requester: body.requester,
           ciphertext: body.ciphertext,
           ciphertextType: body.ciphertextType,
+          oracleAddr: body.oracleAddr,
           callbackAddr: body.callbackAddr,
           callbackFunc: body.callbackFunc,
         };
@@ -300,6 +303,7 @@ export class TaskService {
       chainId: (await this.oracleInstanceService.getOracleInstanceEntity())
         .chainId,
       requestId: task.request.id,
+      oracleAddr: task.request.body.oracleAddr,
       callbackAddr: task.request.body.callbackAddr,
       callbackFunc: task.request.body.callbackFunc,
       responseResults:

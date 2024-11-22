@@ -150,6 +150,11 @@ export const oracleAbi = [
           },
           {
             internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
             name: 'callbackAddr',
             type: 'address',
           },
@@ -232,6 +237,11 @@ export const oracleAbi = [
           },
           {
             internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
             name: 'callbackAddr',
             type: 'address',
           },
@@ -302,6 +312,11 @@ export const oracleAbi = [
           },
           {
             internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
             name: 'callbackAddr',
             type: 'address',
           },
@@ -349,6 +364,24 @@ export const oracleAbi = [
       },
     ],
     name: 'addCallers',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'callbackAddr',
+        type: 'address',
+      },
+      {
+        internalType: 'bool',
+        name: 'enable',
+        type: 'bool',
+      },
+    ],
+    name: 'allowCallbackAddr',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
@@ -434,6 +467,78 @@ export const oracleAbi = [
         internalType: 'uint256[]',
         name: 'extensions',
         type: 'uint256[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
+      },
+      {
+        internalType: 'eaddress',
+        name: 'data',
+        type: 'uint256',
+      },
+    ],
+    name: 'isOwnedEaddress',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
+      },
+      {
+        internalType: 'ebool',
+        name: 'data',
+        type: 'uint256',
+      },
+    ],
+    name: 'isOwnedEbool',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
+      },
+      {
+        internalType: 'euint64',
+        name: 'data',
+        type: 'uint256',
+      },
+    ],
+    name: 'isOwnedEuint64',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
       },
     ],
     stateMutability: 'view',
@@ -530,6 +635,79 @@ export const oracleAbi = [
             type: 'address',
           },
           {
+            components: [
+              {
+                internalType: 'uint8',
+                name: 'opcode',
+                type: 'uint8',
+              },
+              {
+                internalType: 'uint256[]',
+                name: 'operands',
+                type: 'uint256[]',
+              },
+              {
+                internalType: 'uint64',
+                name: 'value',
+                type: 'uint64',
+              },
+            ],
+            internalType: 'struct Operation[]',
+            name: 'ops',
+            type: 'tuple[]',
+          },
+          {
+            internalType: 'uint256',
+            name: 'opsCursor',
+            type: 'uint256',
+          },
+          {
+            internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
+          {
+            internalType: 'bytes',
+            name: 'payload',
+            type: 'bytes',
+          },
+        ],
+        internalType: 'struct Request',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'send',
+    outputs: [
+      {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
             internalType: 'bytes',
             name: 'ciphertext',
             type: 'bytes',
@@ -538,6 +716,11 @@ export const oracleAbi = [
             internalType: 'uint8',
             name: 'ciphertextType',
             type: 'uint8',
+          },
+          {
+            internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
           },
           {
             internalType: 'address',
@@ -604,6 +787,11 @@ export const oracleAbi = [
           },
           {
             internalType: 'address',
+            name: 'oracleAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'address',
             name: 'callbackAddr',
             type: 'address',
           },
@@ -632,68 +820,69 @@ export const oracleAbi = [
   {
     inputs: [
       {
-        components: [
-          {
-            internalType: 'address',
-            name: 'requester',
-            type: 'address',
-          },
-          {
-            components: [
-              {
-                internalType: 'uint8',
-                name: 'opcode',
-                type: 'uint8',
-              },
-              {
-                internalType: 'uint256[]',
-                name: 'operands',
-                type: 'uint256[]',
-              },
-              {
-                internalType: 'uint64',
-                name: 'value',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct Operation[]',
-            name: 'ops',
-            type: 'tuple[]',
-          },
-          {
-            internalType: 'uint256',
-            name: 'opsCursor',
-            type: 'uint256',
-          },
-          {
-            internalType: 'address',
-            name: 'callbackAddr',
-            type: 'address',
-          },
-          {
-            internalType: 'bytes4',
-            name: 'callbackFunc',
-            type: 'bytes4',
-          },
-          {
-            internalType: 'bytes',
-            name: 'payload',
-            type: 'bytes',
-          },
-        ],
-        internalType: 'struct Request',
-        name: 'req',
-        type: 'tuple',
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
       },
-    ],
-    name: 'send',
-    outputs: [
       {
-        internalType: 'bytes32',
-        name: '',
-        type: 'bytes32',
+        internalType: 'eaddress',
+        name: 'data',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bool',
+        name: 'enable',
+        type: 'bool',
       },
     ],
+    name: 'setEaddressOwner',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
+      },
+      {
+        internalType: 'ebool',
+        name: 'data',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bool',
+        name: 'enable',
+        type: 'bool',
+      },
+    ],
+    name: 'setEboolOwner',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'owner',
+        type: 'address',
+      },
+      {
+        internalType: 'euint64',
+        name: 'data',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bool',
+        name: 'enable',
+        type: 'bool',
+      },
+    ],
+    name: 'setEuint64Owner',
+    outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
