@@ -341,6 +341,19 @@ export const oracleAbi = [
     type: 'function',
   },
   {
+    inputs: [],
+    name: 'acl',
+    outputs: [
+      {
+        internalType: 'contract StorageACL',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
     inputs: [
       {
         internalType: 'address[]',
@@ -694,6 +707,19 @@ export const oracleAbi = [
         type: 'bytes32',
       },
     ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'acl_',
+        type: 'address',
+      },
+    ],
+    name: 'setStorageACL',
+    outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
