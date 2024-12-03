@@ -55,9 +55,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -180,9 +180,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -223,9 +223,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -260,9 +260,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -405,9 +405,9 @@ export const computeProxyAbi = [
           {
             components: [
               {
-                internalType: 'uint256',
+                internalType: 'bytes',
                 name: 'data',
-                type: 'uint256',
+                type: 'bytes',
               },
               {
                 internalType: 'uint8',
@@ -483,14 +483,21 @@ export const computeProxyAbi = [
                 type: 'uint8',
               },
               {
-                internalType: 'uint256[]',
+                components: [
+                  {
+                    internalType: 'bytes',
+                    name: 'data',
+                    type: 'bytes',
+                  },
+                  {
+                    internalType: 'uint8',
+                    name: 'valueType',
+                    type: 'uint8',
+                  },
+                ],
+                internalType: 'struct CapsulatedValue[]',
                 name: 'operands',
-                type: 'uint256[]',
-              },
-              {
-                internalType: 'uint64',
-                name: 'value',
-                type: 'uint64',
+                type: 'tuple[]',
               },
             ],
             internalType: 'struct Operation[]',
@@ -530,9 +537,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -555,9 +562,9 @@ export const computeProxyAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -624,7 +631,13 @@ export const computeProxyAbi = [
     type: 'function',
   },
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: 'string',
+        name: 'salt',
+        type: 'string',
+      },
+    ],
     name: 'initialize',
     outputs: [],
     stateMutability: 'nonpayable',

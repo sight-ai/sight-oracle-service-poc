@@ -10,8 +10,7 @@ const Bytes4 = z.string().length(10, 'Expected a 4-byte hexadecimal string');
 
 const OperationSchema = z.object({
   opcode: z.number().int(),
-  operands: z.array(z.bigint()),
-  value: z.bigint(),
+  operands: z.array(CapsulatedValueSchema),
 });
 
 const RequestSchema = z.object({
