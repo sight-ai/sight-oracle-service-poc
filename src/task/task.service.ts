@@ -305,14 +305,14 @@ export class TaskService {
       responseResults:
         task.requestType === RequestType.SaveCiphertextRequestType
           ? {
-              data: BigInt(task.response.body[2][0]),
+              data: task.response.body[2][0],
               valueType: Number(task.response.body[2][1]),
             }
           : task.requestType === RequestType.GeneralRequestType ||
               task.requestType === RequestType.GeneralRequestTypeWithAsyncOps
             ? task.response.body[2].map((element) => {
                 return {
-                  data: BigInt(element[0]),
+                  data: element[0],
                   valueType: Number(element[1]),
                 };
               })

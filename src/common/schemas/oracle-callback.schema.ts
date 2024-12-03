@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const CapsulatedValueSchema = z.object({
-  data: z.bigint(),
+  data: z.string(),
   valueType: z.number().int(),
 });
 

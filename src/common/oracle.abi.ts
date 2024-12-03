@@ -124,9 +124,9 @@ export const oracleAbi = [
           {
             components: [
               {
-                internalType: 'uint256',
+                internalType: 'bytes',
                 name: 'data',
-                type: 'uint256',
+                type: 'bytes',
               },
               {
                 internalType: 'uint8',
@@ -211,14 +211,21 @@ export const oracleAbi = [
                 type: 'uint8',
               },
               {
-                internalType: 'uint256[]',
+                components: [
+                  {
+                    internalType: 'bytes',
+                    name: 'data',
+                    type: 'bytes',
+                  },
+                  {
+                    internalType: 'uint8',
+                    name: 'valueType',
+                    type: 'uint8',
+                  },
+                ],
+                internalType: 'struct CapsulatedValue[]',
                 name: 'operands',
-                type: 'uint256[]',
-              },
-              {
-                internalType: 'uint64',
-                name: 'value',
-                type: 'uint64',
+                type: 'tuple[]',
               },
             ],
             internalType: 'struct Operation[]',
@@ -376,9 +383,9 @@ export const oracleAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -513,9 +520,9 @@ export const oracleAbi = [
       {
         components: [
           {
-            internalType: 'uint256',
+            internalType: 'bytes',
             name: 'data',
-            type: 'uint256',
+            type: 'bytes',
           },
           {
             internalType: 'uint8',
@@ -591,9 +598,84 @@ export const oracleAbi = [
           {
             components: [
               {
-                internalType: 'uint256',
+                internalType: 'uint8',
+                name: 'opcode',
+                type: 'uint8',
+              },
+              {
+                components: [
+                  {
+                    internalType: 'bytes',
+                    name: 'data',
+                    type: 'bytes',
+                  },
+                  {
+                    internalType: 'uint8',
+                    name: 'valueType',
+                    type: 'uint8',
+                  },
+                ],
+                internalType: 'struct CapsulatedValue[]',
+                name: 'operands',
+                type: 'tuple[]',
+              },
+            ],
+            internalType: 'struct Operation[]',
+            name: 'ops',
+            type: 'tuple[]',
+          },
+          {
+            internalType: 'uint256',
+            name: 'opsCursor',
+            type: 'uint256',
+          },
+          {
+            internalType: 'address',
+            name: 'callbackAddr',
+            type: 'address',
+          },
+          {
+            internalType: 'bytes4',
+            name: 'callbackFunc',
+            type: 'bytes4',
+          },
+          {
+            internalType: 'bytes',
+            name: 'payload',
+            type: 'bytes',
+          },
+        ],
+        internalType: 'struct Request',
+        name: 'req',
+        type: 'tuple',
+      },
+    ],
+    name: 'send',
+    outputs: [
+      {
+        internalType: 'bytes32',
+        name: '',
+        type: 'bytes32',
+      },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'address',
+            name: 'requester',
+            type: 'address',
+          },
+          {
+            components: [
+              {
+                internalType: 'bytes',
                 name: 'data',
-                type: 'uint256',
+                type: 'bytes',
               },
               {
                 internalType: 'uint8',
@@ -627,74 +709,6 @@ export const oracleAbi = [
           },
         ],
         internalType: 'struct ReencryptRequest',
-        name: 'req',
-        type: 'tuple',
-      },
-    ],
-    name: 'send',
-    outputs: [
-      {
-        internalType: 'bytes32',
-        name: '',
-        type: 'bytes32',
-      },
-    ],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        components: [
-          {
-            internalType: 'address',
-            name: 'requester',
-            type: 'address',
-          },
-          {
-            components: [
-              {
-                internalType: 'uint8',
-                name: 'opcode',
-                type: 'uint8',
-              },
-              {
-                internalType: 'uint256[]',
-                name: 'operands',
-                type: 'uint256[]',
-              },
-              {
-                internalType: 'uint64',
-                name: 'value',
-                type: 'uint64',
-              },
-            ],
-            internalType: 'struct Operation[]',
-            name: 'ops',
-            type: 'tuple[]',
-          },
-          {
-            internalType: 'uint256',
-            name: 'opsCursor',
-            type: 'uint256',
-          },
-          {
-            internalType: 'address',
-            name: 'callbackAddr',
-            type: 'address',
-          },
-          {
-            internalType: 'bytes4',
-            name: 'callbackFunc',
-            type: 'bytes4',
-          },
-          {
-            internalType: 'bytes',
-            name: 'payload',
-            type: 'bytes',
-          },
-        ],
-        internalType: 'struct Request',
         name: 'req',
         type: 'tuple',
       },
