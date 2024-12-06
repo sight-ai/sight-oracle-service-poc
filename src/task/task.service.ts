@@ -202,7 +202,7 @@ export class TaskService {
             others,
           );
           this.logger.log(
-            `Task ${taskId} computation executingg with response:`,
+            `Task ${taskId} computation executing with response:`,
           );
           this.logger.debug(JSON.stringify(response, bigintToJSON));
           task.status = TaskStatus.COMPUTE_EXECUTING;
@@ -228,7 +228,6 @@ export class TaskService {
           task_resp.body = body;
           await this.responseRepository.save(task_resp);
           task.response = task_resp;
-          task.executeTxHashs.push(task.executeTxHash);
           await this.taskRepository.save(task);
           break;
         case RequestType.GeneralRequestTypeWithAsyncOps:

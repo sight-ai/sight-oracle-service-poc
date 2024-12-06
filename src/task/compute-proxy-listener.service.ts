@@ -112,22 +112,6 @@ export class ComputeProxyListenerService
                   RequestType.GeneralRequestType,
                 );
                 break;
-              case 'ReencryptRequestResolved':
-                if (
-                  log.args.oracleInstanceId !=
-                  (await this.oracleInstanceService.getOracleInstanceEntity())
-                    .id
-                ) {
-                  this.logger.warn(
-                    `Skip Event: ${log.eventName}, oracleInstanceId not matched`,
-                  );
-                  break;
-                }
-                this.computeProxyService.doSaveResponseResults(
-                  log,
-                  RequestType.ReencryptRequestType,
-                );
-                break;
               case 'SaveCiphertextResolved':
                 if (
                   log.args.oracleInstanceId !=
@@ -146,6 +130,7 @@ export class ComputeProxyListenerService
                 break;
               case 'RequestAsyncResolved':
               case 'DecryptAsyncResolved':
+              case 'ReencryptRequestResolved':
                 if (
                   log.args.oracleInstanceId !=
                   (await this.oracleInstanceService.getOracleInstanceEntity())

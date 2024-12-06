@@ -147,10 +147,28 @@ export const computeProxyAbi = [
         type: 'bytes32',
       },
       {
+        components: [
+          {
+            internalType: 'bytes',
+            name: 'data',
+            type: 'bytes',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
+        ],
         indexed: false,
-        internalType: 'bytes',
+        internalType: 'struct CapsulatedValue[]',
         name: 'results',
-        type: 'bytes',
+        type: 'tuple[]',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'asyncOpCursor',
+        type: 'uint256',
       },
     ],
     name: 'ReencryptRequestResolved',
@@ -677,6 +695,59 @@ export const computeProxyAbi = [
         internalType: 'address',
         name: '',
         type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        components: [
+          {
+            internalType: 'bytes',
+            name: 'data',
+            type: 'bytes',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
+        ],
+        internalType: 'struct CapsulatedValue',
+        name: 'target',
+        type: 'tuple',
+      },
+      {
+        internalType: 'bytes32',
+        name: 'publicKey',
+        type: 'bytes32',
+      },
+      {
+        internalType: 'bytes',
+        name: '',
+        type: 'bytes',
+      },
+    ],
+    name: 'reencrypt',
+    outputs: [
+      {
+        components: [
+          {
+            internalType: 'bytes',
+            name: 'data',
+            type: 'bytes',
+          },
+          {
+            internalType: 'uint8',
+            name: 'valueType',
+            type: 'uint8',
+          },
+        ],
+        internalType: 'struct CapsulatedValue',
+        name: '',
+        type: 'tuple',
       },
     ],
     stateMutability: 'view',
