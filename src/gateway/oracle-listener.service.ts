@@ -15,7 +15,8 @@ import { oracleClient as client } from '../common/clients';
 // uint8 internal constant decrypt_ebool_async = 52;
 // uint8 internal constant decrypt_euint64_async = 53;
 // uint8 internal constant decrypt_eaddress_async = 54;
-const async_opcodes = [52, 53, 54];
+// uint8 internal constant reencrypt = 64;
+const async_opcodes = [52, 53, 54, 64];
 
 @Injectable()
 export class OracleListenerService implements OnModuleInit, OnModuleDestroy {

@@ -26,6 +26,8 @@ import {
 } from 'src/common/entities/response.entity';
 import { TaskService } from './task.service';
 
+const abiCoder = ethers.AbiCoder.defaultAbiCoder();
+
 @Injectable()
 export class ComputeProxyService implements OnModuleInit {
   private readonly logger = new Logger(ComputeProxyService.name);
@@ -323,6 +325,53 @@ export class ComputeProxyService implements OnModuleInit {
             JSON.stringify(previousAsyncResponse.body.results, bigintToJSON),
           );
           task.asynced = true;
+          await this.taskRepository.save(task);
+          break;
+        case 'ReencryptRequestResolved':
+          const asyncReencryptResponse = new AsyncResponseEntity();
+          asyncReencryptResponse.reqIdAsync = -1;
+          asyncReencryptResponse.transactionHash = log.transactionHash;
+          asyncReencryptResponse.body = log.args;
+
+          await this.asyncResponseRepository.save(asyncReencryptResponse);
+          task.asyncResponses.push(asyncReencryptResponse);
+          await this.taskRepository.save(task);
+          this.logger.log('Task computation async reencrypt response captured');
+
+          const operands =
+            task.request.body.ops[Number(log.args.asyncOpCursor)].operands;
+          try {
+            const reencrypt_result = await (
+              this.contract.connect(
+                this.wallets[this.wallets_idx++ % this.wallets.length],
+              ) as ethers.Contract
+            ).reencrypt(
+              asyncReencryptResponse.body.results[
+                Number(abiCoder.decode(['uint256'], operands[0].data)[0])
+              ],
+              abiCoder.decode(['bytes32'], operands[1].data)[0],
+              operands[2].data,
+              {
+                gasLimit: 10000000n,
+              },
+            );
+            asyncReencryptResponse.body.results[
+              Number(asyncReencryptResponse.body.asyncOpCursor)
+            ] = reencrypt_result;
+            asyncReencryptResponse.transactionHashAsync = log.transactionHash;
+            await this.asyncResponseRepository.save(asyncReencryptResponse);
+            this.logger.log(
+              'Doing async reencrypt computation with the following args:',
+            );
+            this.logger.debug(
+              JSON.stringify(task.request.body, bigintToJSON),
+              Number(asyncReencryptResponse.body.asyncOpCursor) + 1,
+              JSON.stringify(asyncReencryptResponse.body.results, bigintToJSON),
+            );
+            task.asynced = true;
+          } catch (error) {
+            task.failed = true;
+          }
           await this.taskRepository.save(task);
           break;
         default:

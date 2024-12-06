@@ -14,6 +14,7 @@ import {
   AsyncResponseEntity,
   ResponseEntity,
 } from 'src/common/entities/response.entity';
+import { TaskController } from './task.controller';
 
 @Module({
   imports: [
@@ -35,5 +36,6 @@ import {
     ComputeProxyListenerService,
   ],
   exports: [TaskService, ComputeProxyService, ComputeProxyListenerService],
+  controllers: [TaskController],
 })
 export class TaskModule {}
